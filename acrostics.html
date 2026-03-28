@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<titleAcrostic Builder</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: monospace;
+    font-size: 15px;
+    background: #cecfb2;
+    color: black;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  h1 { text-align: center;
+       text-transform: uppercase;
+       font-size: 18px;
+       color: darkblue;
+       margin-bottom: 20px; }
+
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .subview {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  label {
+    font-size: 11px;
+    font-weight: bold;
+    /* text-transform: uppercase; */
+    letter-spacing: 0.08em;
+    color: black;
+  }
+
+  textarea, input[type="text"] {
+    background: white;
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    color: black;
+    font-family: monospace;
+    font-size: 15px;
+    padding: 8px 10px;
+    resize: none;
+    outline: none;
+    width: 100%;
+  }
+  textarea:focus, input[type="text"]:focus {
+    border-color: #007acc;
+  }
+
+  /* Letters: read-only display, same visual size as Quotation */
+  #letters {
+    background: lightgray;
+    border: none;
+    // border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    color: black;
+    font-family: monospace;
+    font-size: 15px;
+    padding: 8px 10px;
+    min-height: 5.4em;   /* ~3-5 lines */
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+  }
+
+  /* Answers column */
+  #answers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .answer-row {
+    display: flex;
+    align-items: center;
+    // gap: 8px;
+    gap: 0;
+  }
+  .answer-row input[type="text"] {
+     border: none;
+     padding-left: 0px;
+  }
+  .answer-row input[type="text"]:focus {
+    border: none;
+  }
+  .answer-letter {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+
+    background: white;
+    border: none;
+    border-right: none;
+    border-radius: 4px 0 0 4px;
+    // padding: 8px 10px;
+    padding-right: 0px;
+    font-size: 17px;
+    // font-weight: bold;
+    // color: #9cdcfe;
+    color: black;
+    flex-shrink: 0;
+  }
+
+  .answer-input {
+    border: none;
+    border-left: none;
+    // border-radius: 0 4px 4px 0;
+    // flex: 1;
+  }
+
+  #answers-placeholder {
+    color: #555;
+    font-style: italic;
+    font-size: 15px;
+  }
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+button {
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 4px;
+  color: #d4d4d4;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #4c4c4c;
+  border-color: #777;
+}
+
+
+</style>
+</head>
+<body>
+
+<h1>Acrostics Builder</h1>
+
+<div class="panel">
+
+  <div class="subview">
+    <label>Quotation</label>
+    <textarea id="quotation" rows="4" placeholder="Enter quotation…"></textarea>
+  </div>
+
+  <div class="subview">
+    <label>Title/Author</label>
+    <input type="text" id="author" placeholder="Enter title and author name…">
+  </div>
+
+  <div class="subview">
+    <label>Available Letters</label>
+    <div id="letters"></div>
+  </div>
+
+  <div class="subview">
+    <label>Answers</label>
+    <div id="answers-container">
+      <span id="answers-placeholder">Answers appear here once an author is entered.</span>
+    </div>
+  </div>
+
+</div>
+
+<div class="buttons">
+  <button id="save-btn">Save</button>
+  <button id="load-btn">Load</button>
+  <input type="file" id="file-input" accept=".json" style="display:none">
+</div>
+
+<script src="acrostics.js"></script>
+
+</body>
+</html>
