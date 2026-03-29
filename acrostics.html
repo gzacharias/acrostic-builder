@@ -74,27 +74,27 @@
     line-height: 1.5;
   }
 
-  /* Answers column */
-  #answers-container {
+  /* Words column */
+  #words-container {
     display: flex;
     flex-direction: column;
     gap: 6px;
   }
 
-  .answer-row {
+  .word-row {
     display: flex;
     align-items: center;
     // gap: 8px;
     gap: 0;
   }
-  .answer-row input[type="text"] {
+  .word-row input[type="text"] {
      border: none;
      padding-left: 0px;
   }
-  .answer-row input[type="text"]:focus {
+  .word-row input[type="text"]:focus {
     border: none;
   }
-  .answer-letter {
+  .word-letter {
     align-self: stretch;
     display: flex;
     align-items: center;
@@ -112,14 +112,14 @@
     flex-shrink: 0;
   }
 
-  .answer-input {
+  .word-input {
     border: none;
     border-left: none;
     // border-radius: 0 4px 4px 0;
     // flex: 1;
   }
 
-  #answers-placeholder {
+  #words-placeholder {
     color: #555;
     font-style: italic;
     font-size: 15px;
@@ -164,7 +164,7 @@ button:hover {
 
   <div class="subview">
     <label>Title/Author</label>
-    <input type="text" id="author" placeholder="Enter title and author name…">
+    <input type="text" id="source" placeholder="Enter source of quotation…">
   </div>
 
   <div class="subview">
@@ -173,9 +173,9 @@ button:hover {
   </div>
 
   <div class="subview">
-    <label>Answers</label>
-    <div id="answers-container">
-      <span id="answers-placeholder">Answers appear here once an author is entered.</span>
+    <label>Words</label>
+    <div id="words-container">
+      <span id="words-placeholder">Words entries appear here once Title/Author is entered.</span>
     </div>
   </div>
 

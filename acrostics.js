@@ -1,7 +1,9 @@
+// TODO: don't allow unavailable leetters in title!
+
 const quotation_elt = document.getElementById('quotation');
-const author_elt    = document.getElementById('author');
+const source_elt    = document.getElementById('source');
 const letters_elt   = document.getElementById('letters');
-const answers_elt   = document.getElementById('answers-container');
+const words_elt     = document.getElementById('words-container');
 
 // Is there really no predefined way to do something like this??
 function beep() {
@@ -25,10 +27,10 @@ function letters_of (str) {
 }
 
 function unused_letters() {
-  const author = author_elt.value;
-  const answers = map_str(answers_elt.querySelectorAll('.answer-input'), inp => inp.value);
+  const source = source_elt.value;
+  const words = map_str(words_elt.querySelectorAll('.word-input'), inp => inp.value);
   const used = {};
-  for (const ch of letters_of (author+answers))
+  for (const ch of letters_of (source+words))
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
@@ -42,59 +44,60 @@ function update_letters () {
   letters_elt.textContent = unused_letters().match(/(.)\1*/g)?.join(' ') ?? '';
 }
 
-function rebuild_answers() {
-  const author = author_elt.value;
-  if (!author) {
-    answers_elt.innerHTML = '<span id="answers-placeholder">Answers appear here once an author is entered.</span>';
+function rebuild_words() {
+  const source = source_elt.value;
+  if (!source) {
+    words_elt.innerHTML = '';
+    words_elt.appendChild(document.getElementById('words-placeholder'));
     return;
   }
 
-  const initials = letters_of(author);
-  const answers = [...answers_elt.querySelectorAll('.answer-row')];
-  if (initials === answers.map(row => row.querySelector('.answer-letter').textContent).join(''))
+  const initials = letters_of(source);
+  const words = [...words_elt.querySelectorAll('.word-row')];
+  if (initials === words.map(row => row.querySelector('.word-letter').textContent).join(''))
     return;
 
 
   const existing = {};
-  for (const row  of answers) {
-    const ch = row.querySelector('.answer-letter').textContent;
-    const text = row.querySelector('.answer-input').value;
+  for (const row  of words) {
+    const ch = row.querySelector('.word-letter').textContent;
+    const text = row.querySelector('.word-input').value;
     if (!existing[ch]) existing[ch] = [];
     existing[ch].push(text)
   }
 
-  answers_elt.innerHTML = '';
+  words_elt.innerHTML = '';
 
   for (let i = 0; i < initials.length; i++) {
     const ch = initials[i];
 
     const row = document.createElement('div');
-    row.className = 'answer-row';
+    row.className = 'word-row';
 
     const initial = document.createElement('span');
-    initial.className = 'answer-letter';
+    initial.className = 'word-letter';
     initial.textContent = ch;
     row.appendChild(initial);
 
     const inp = document.createElement('input');
     inp.type = 'text';
-    inp.className = 'answer-input';
+    inp.className = 'word-input';
     inp.dataset.index = i;
-    inp.placeholder = ` answer starting with "${ch}"…`;
-    // Find first unused prior answer with the same letter
+    inp.placeholder = ` word starting with "${ch}"…`;
+    // Find first unused prior word with the same letter
     inp.value = existing[ch]?.shift() ?? '';
 
     inp.addEventListener('input', update_letters);
     // Navigation
     inp.addEventListener('keydown', e => {
       if ((e.shiftKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'p')) {
-        const inputs = [...answers_elt.querySelectorAll('.answer-input')];
+        const inputs = [...words_elt.querySelectorAll('.word-input')];
         const i = inputs.indexOf(e.target);
         const prev = inputs[i - 1];
         if (prev) prev.focus();
         e.preventDefault();
       } else if (e.key === 'Enter' || (e.ctrlKey && e.key === 'n')) {
-        const inputs = [...answers_elt.querySelectorAll('.answer-input')];
+        const inputs = [...words_elt.querySelectorAll('.word-input')];
         const i = inputs.indexOf(e.target);
         const next = inputs[i + 1];
         if (next) next.focus();
@@ -119,12 +122,12 @@ function rebuild_answers() {
 
     row.appendChild(inp);
 
-    answers_elt.appendChild(row);
+    words_elt.appendChild(row);
   }
 }
 
 
-author_elt.addEventListener('input', () => { rebuild_answers(); update_letters(); });
+source_elt.addEventListener('input', () => { rebuild_words(); update_letters(); });
 
 quotation_elt.addEventListener('input', update_letters);
 
@@ -136,17 +139,17 @@ quotation_elt.addEventListener('input', update_letters);
 function get_puzzle_data() {
   return {
     quotation: quotation_elt.value,
-    author: author_elt.value,
-    answers: [...answers_elt.querySelectorAll('.answer-input')].map(inp => inp.value)
+    source: source_elt.value,
+    words: [...words_elt.querySelectorAll('.word-input')].map(inp => inp.value)
   };
 }
 
 function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
-  author_elt.value = data.author;
-  rebuild_answers();
-  const inputs = [...answers_elt.querySelectorAll('.answer-input')];
-  data.answers.forEach((val, i) => { if (inputs[i]) inputs[i].value = val; });
+  source_elt.value = data.source;
+  rebuild_words();
+  const inputs = [...words_elt.querySelectorAll('.word-input')];
+  data.words.forEach((val, i) => { if (inputs[i]) inputs[i].value = val; });
   update_letters();
 }
 
