@@ -66,9 +66,7 @@ function make_word_elt (index, ch, html) {
   input.placeholder = ` word starting with "${ch}"…`;
   input.innerHTML = html;
 
-  input.addEventListener('focus', refresh_words_overlay);
-  input.addEventListener('blur', refresh_words_overlay);
-  input.addEventListener('input', () => { update_letters(); refresh_words_overlay(); });
+  input.addEventListener('input', update_letters);
 
   input.addEventListener('keydown', e => {
     if ((e.shiftKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'p')) {
@@ -136,6 +134,7 @@ function unused_letters() {
 
 function update_letters () {
   letters_elt.textContent = unused_letters().match(/(.)\1*/g)?.join(' ') ?? '';
+  update_words_markup();
 }
 
 function rebuild_words() {
@@ -166,13 +165,14 @@ function rebuild_words() {
   }
 }
 
-source_elt.addEventListener('input', () => { rebuild_words(); update_letters(); refresh_words_overlay(); });
+source_elt.addEventListener('input', () => { rebuild_words(); update_letters(); });
 
-quotation_elt.addEventListener('input', () => { update_letters(); refresh_words_overlay(); });
+quotation_elt.addEventListener('input', update_letters);
+
 
 
 // --------------------- Illegal Char Handling -----------------------------------------------------------
-function refresh_words_overlay () {
+function update_words_markup () {
   const available_letters = {};
   for (const ch of letters_of(quotation_elt.value)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
 
@@ -190,9 +190,6 @@ function refresh_words_overlay () {
 
 
   }
-
-  // console.log('refresh_words_overlay called, active:', document.activeElement);
-
 
   for (const word of all_words()) {
     word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
@@ -213,21 +210,22 @@ function get_puzzle_data() {
 
 function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
+  console.log('Quotation_elt',  quotation_elt);
   source_elt.value = data.source;
   rebuild_words();
   const rows = all_words();
   if (data.words.length !== rows.length)
     alert(`Bad file: expected ${rows.length} words, got ${data.words.length}`);
-  else data.words.forEach((val, i) => { word_input(rows[i]).textContent = val; });
+  else
+    data.words.forEach((val, i) => { word_input(rows[i]).textContent = val; });
   update_letters();
-  refresh_words_overlay();
 }
 
 document.getElementById('save-btn').addEventListener('click', () => {
   const json = JSON.stringify(get_puzzle_data(), null, 2);
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
-  a.download = 'acrostic.json';
+  a.download = 'acrostic.acr';
   a.click();
 });
 
@@ -241,4 +239,5 @@ document.getElementById('file-input').addEventListener('change', e => {
   const reader = new FileReader();
   reader.onload = e => load_puzzle_data(JSON.parse(e.target.result));
   reader.readAsText(file);
+  e.target.value = '';  // reset so same file can be loaded again
 });
