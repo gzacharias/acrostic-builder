@@ -54,9 +54,15 @@
       outline: none;
       width: 100%;
   }
-  textarea:focus, input[type="text"]:focus {
+  textarea:focus, input[type="text"]:focus, .editable:focus {
       border-color: #007acc;
   }
+
+[contenteditable][placeholder]:empty::before {
+  content: attr(placeholder);
+  color: #999;
+  pointer-events: none;
+}
 
   /* Letters: read-only display, same visual size as Quotation */
   #letters {
@@ -114,9 +120,14 @@
       padding: 4px 0px;
       width: 100%;
   }
+  .word-input[placeholder]:empty::before {
+      padding-left: 6px;
+  }
+
   .word-input:focus {
       border-color: #007acc;
   }
+
 
   #words-placeholder {
       color: #555;

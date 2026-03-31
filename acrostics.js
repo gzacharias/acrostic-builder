@@ -75,7 +75,8 @@ function make_word_elt (index, ch, html) {
   input.type = 'text';
   input.className = 'word-input';
   input.dataset.index = index;
-  input.placeholder = ` word starting with "${ch}"…`;
+  input.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
+
   input.innerHTML = html;
 
   input.addEventListener('input', update_letters);
@@ -96,15 +97,6 @@ function make_word_elt (index, ch, html) {
     }});
 
   input_container.appendChild(input);
-
-/*
-  const display = document.createElement('div');
-  display.className = 'word-display';
-  input.display = display;
-  display.addEventListener('click', () => input.focus());
-
-  input_container.appendChild(display);
-*/
 
   row.appendChild(input_container);
 
@@ -230,7 +222,6 @@ function get_puzzle_data() {
 
 function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
-  console.log('Quotation_elt',  quotation_elt);
   source_elt.innerHTML = data.source;
   rebuild_words();
   const rows = all_words();
