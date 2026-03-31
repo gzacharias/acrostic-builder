@@ -9,10 +9,43 @@ function all_words () { return [...words_elt.querySelectorAll('.word-row')] }
 function word_initial_elt (row) { return row.querySelector('.word-letter') }
 function word_initial (row) { return row.querySelector('.word-letter').textContent }
 function word_input (row) { return row.querySelector('.word-input') }
-function word_text (row) { return row.querySelector('.word-input').value }
+function word_text (row) { return row.querySelector('.word-input').textContent }
 
+function get_cursor_pos(elt) {
+  const sel = window.getSelection();
+  if (!sel.rangeCount) return null;
+  const range = sel.getRangeAt(0);
+  if (!elt.contains(range.endContainer)) return null;
+  const pre = range.cloneRange();
+  pre.selectNodeContents(elt);
+  pre.setEnd(range.endContainer, range.endOffset);
+  return pre.toString().length;
+}
 
-function make_word_elt (index, ch, text) {
+function set_cursor_pos(elt, offset) {
+  const sel = window.getSelection();
+  const range = document.createRange();
+  let pos = 0;
+  for (const node of elt.childNodes) {
+    const len = node.textContent.length;
+    if (pos + len >= offset) {
+      range.setStart(node.nodeType === 3 ? node : node.firstChild ?? node, offset - pos);
+      range.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return;
+    }
+    pos += len;
+  }
+}
+
+function set_input_html (elt, html) {
+  const offset = get_cursor_pos(elt);
+  elt.innerHTML = html;
+  if (offset) set_cursor_pos(elt, offset);
+}
+
+function make_word_elt (index, ch, html) {
   const row = document.createElement('div');
   row.className = 'word-row';
 
@@ -25,12 +58,13 @@ function make_word_elt (index, ch, text) {
   input_container.style.position = 'relative';
   input_container.style.flex = '1';
   
-  const input = document.createElement('input');
+  const input = document.createElement('div');
+  input.contentEditable = 'true';
   input.type = 'text';
   input.className = 'word-input';
   input.dataset.index = index;
   input.placeholder = ` word starting with "${ch}"…`;
-  input.value = text;
+  input.innerHTML = html;
 
   input.addEventListener('focus', refresh_words_overlay);
   input.addEventListener('blur', refresh_words_overlay);
@@ -53,12 +87,14 @@ function make_word_elt (index, ch, text) {
 
   input_container.appendChild(input);
 
+/*
   const display = document.createElement('div');
   display.className = 'word-display';
   input.display = display;
   display.addEventListener('click', () => input.focus());
 
   input_container.appendChild(display);
+*/
 
   row.appendChild(input_container);
 
@@ -156,33 +192,13 @@ function refresh_words_overlay () {
   }
 
   // console.log('refresh_words_overlay called, active:', document.activeElement);
-  // console.log('words:', all_words().map(w => ({inp: word_input(w), display: word_input(w).display})));
 
 
   for (const word of all_words()) {
     word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
-    word_input(word).display.innerHTML = [...word_text(word)].map(render_char).join('');
+    set_input_html(word_input(word), [...word_text(word)].map(render_char).join(''));
   }
 
-/*
-  for (const word of all_words()) {
-    const inp = word_input(word);
-    const display = inp.display;
-    //  The active element doesn't need a display and also don't count it for the purpose of 
-    //  checking legality -- just treat it as if it was empty until it gets committed.
-    if (inp === document.activeElement) {
-      display.style.display = 'none';
-      inp.style.display = '';
-    }
-    else {
-      word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
-      display.innerHTML = [...word_text(word)].map(render_char).join('');
-      // display.style.display = '';
-      display.style.display = 'block';
-      inp.style.display = 'none';
-    }
-  }
-*/
 }
 
 // ---------------------Save & Restore -----------------------------------------------------------
@@ -202,7 +218,7 @@ function load_puzzle_data(data) {
   const rows = all_words();
   if (data.words.length !== rows.length)
     alert(`Bad file: expected ${rows.length} words, got ${data.words.length}`);
-  else data.words.forEach((val, i) => { word_input(rows[i]).value = val; });
+  else data.words.forEach((val, i) => { word_input(rows[i]).textContent = val; });
   update_letters();
   refresh_words_overlay();
 }
