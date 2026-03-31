@@ -5,11 +5,15 @@ const words_elt     = document.getElementById('words-container');
 
 const words_placeholder = document.getElementById('words-placeholder');
 
+function source_text () { return source_elt.textContent; }
+
 function all_words () { return [...words_elt.querySelectorAll('.word-row')] }
 function word_initial_elt (row) { return row.querySelector('.word-letter') }
 function word_initial (row) { return row.querySelector('.word-letter').textContent }
 function word_input (row) { return row.querySelector('.word-input') }
 function word_text (row) { return row.querySelector('.word-input').textContent }
+
+function map_to_str (things, fn) { return [...things].map(fn).join(''); }
 
 function get_cursor_pos(elt) {
   const sel = window.getSelection();
@@ -26,18 +30,26 @@ function set_cursor_pos(elt, offset) {
   const sel = window.getSelection();
   const range = document.createRange();
   let pos = 0;
-  for (const node of elt.childNodes) {
-    const len = node.textContent.length;
-    if (pos + len >= offset) {
-      range.setStart(node.nodeType === 3 ? node : node.firstChild ?? node, offset - pos);
-      range.collapse(true);
-      sel.removeAllRanges();
-      sel.addRange(range);
-      return;
+  function walk(node) {
+    if (node.nodeType === 3) { // TEXT_NODE
+      const len = node.textContent.length;
+      if (pos + len >= offset) {
+        range.setStart(node, offset - pos);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        return true;
+      }
+      pos += len;
+    } else {
+      for (const child of node.childNodes)
+        if (walk(child)) return true;
     }
-    pos += len;
+    return false;
   }
+  walk(elt);
 }
+
 
 function set_input_html (elt, html) {
   const offset = get_cursor_pos(elt);
@@ -122,7 +134,7 @@ function letters_of (bag_of_chars) {
 
 function unused_letters() {
   const used = {};
-  for (const ch of letters_of(source_elt.value + all_words().map(word_text).join('')))
+  for (const ch of letters_of(source_text() + map_to_str(all_words(), word_text)))
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
@@ -134,11 +146,11 @@ function unused_letters() {
 
 function update_letters () {
   letters_elt.textContent = unused_letters().match(/(.)\1*/g)?.join(' ') ?? '';
-  update_words_markup();
+  update_error_markup();
 }
 
 function rebuild_words() {
-  const new_source = source_elt.value;
+  const new_source = source_text();
   if (!new_source) {
     words_elt.innerHTML = '';
     words_elt.appendChild(words_placeholder);
@@ -147,7 +159,7 @@ function rebuild_words() {
   const new_initials = letters_of(new_source);
 
   const existing_words = all_words();
-  if (new_initials === existing_words.map(word_initial).join(''))
+  if (new_initials === map_to_str(existing_words, word_initial))
     return;
   const existing_map = {};
   for (const word of existing_words) {
@@ -172,30 +184,38 @@ quotation_elt.addEventListener('input', update_letters);
 
 
 // --------------------- Illegal Char Handling -----------------------------------------------------------
-function update_words_markup () {
+function update_error_markup () {
   const available_letters = {};
   for (const ch of letters_of(quotation_elt.value)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
 
-  function check_illegal (ch) {
-    ch = ch.toUpperCase();
-    if (available_letters[ch] > 0) {
-      available_letters[ch]--;
-      return false;
+  function char_html (ch) {
+    if (char_if_letter(ch)) {
+      const upper_ch = ch.toUpperCase();
+      if (available_letters[upper_ch] > 0) {
+        available_letters[upper_ch]--;
+        return ch;
+      }
+      else 
+        return `<span class="illegal">${ch}</span>`;
     }
-    else return true;
+    else return null;
   }
 
-  function render_char (ch) {
-    return (char_if_letter(ch) && check_illegal(ch)) ? `<span class="illegal">${ch}</span>` : ch;
-
-
-  }
+  // Render source, and record state for use in word initials
+  const source_states = [];
+  const source_html = map_to_str(source_text(),
+                                 ch => { const text = char_html(ch);
+                                         if (text) source_states.push(text.length > 1); // save for letters only.
+                                         return text ?? ch });
 
   for (const word of all_words()) {
-    word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
-    set_input_html(word_input(word), [...word_text(word)].map(render_char).join(''));
+    word_initial_elt(word).classList.toggle('illegal', source_states.shift());
+    const word_html = map_to_str(word_text(word), ch => char_html(ch) ?? ch);
+    set_input_html(word_input(word), word_html);
   }
 
+  // Do this last so it doesn't disturb the cursor in any word input.
+  set_input_html(source_elt, source_html);
 }
 
 // ---------------------Save & Restore -----------------------------------------------------------
@@ -203,7 +223,7 @@ function update_words_markup () {
 function get_puzzle_data() {
   return {
     quotation: quotation_elt.value,
-    source: source_elt.value,
+    source: source_text(),
     words: all_words().map(word_text)
   };
 }
@@ -211,7 +231,7 @@ function get_puzzle_data() {
 function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
   console.log('Quotation_elt',  quotation_elt);
-  source_elt.value = data.source;
+  source_elt.innerHTML = data.source;
   rebuild_words();
   const rows = all_words();
   if (data.words.length !== rows.length)
