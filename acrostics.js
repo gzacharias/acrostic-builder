@@ -1,9 +1,71 @@
-// TODO: don't allow unavailable leetters in title!
-
 const quotation_elt = document.getElementById('quotation');
 const source_elt    = document.getElementById('source');
 const letters_elt   = document.getElementById('letters');
 const words_elt     = document.getElementById('words-container');
+
+const words_placeholder = document.getElementById('words-placeholder');
+
+function all_words () { return [...words_elt.querySelectorAll('.word-row')] }
+function word_initial_elt (row) { return row.querySelector('.word-letter') }
+function word_initial (row) { return row.querySelector('.word-letter').textContent }
+function word_input (row) { return row.querySelector('.word-input') }
+function word_text (row) { return row.querySelector('.word-input').value }
+
+
+function make_word_elt (index, ch, text) {
+  const row = document.createElement('div');
+  row.className = 'word-row';
+
+  const initial = document.createElement('span');
+  initial.className = 'word-letter';
+  initial.textContent = ch;
+  row.appendChild(initial);
+
+  const input_container = document.createElement('div');
+  input_container.style.position = 'relative';
+  input_container.style.flex = '1';
+  
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'word-input';
+  input.dataset.index = index;
+  input.placeholder = ` word starting with "${ch}"…`;
+  input.value = text;
+
+  input.addEventListener('focus', refresh_words_overlay);
+  input.addEventListener('blur', refresh_words_overlay);
+  input.addEventListener('input', () => { update_letters(); refresh_words_overlay(); });
+
+  input.addEventListener('keydown', e => {
+    if ((e.shiftKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'p')) {
+      const inputs = all_words().map(word_input);
+      const i = inputs.indexOf(e.target);
+      const prev = inputs[i - 1];
+      if (prev) prev.focus();
+      e.preventDefault();
+    } else if (e.key === 'Enter' || (e.ctrlKey && e.key === 'n')) {
+      const inputs = all_words().map(word_input);
+      const i = inputs.indexOf(e.target);
+      const next = inputs[i + 1];
+      if (next) next.focus();
+      e.preventDefault();
+    }});
+
+  input_container.appendChild(input);
+
+  const display = document.createElement('div');
+  display.className = 'word-display';
+  input.display = display;
+  display.addEventListener('click', () => input.focus());
+
+  input_container.appendChild(display);
+
+  row.appendChild(input_container);
+
+  return row;
+}
+
+
 
 // Is there really no predefined way to do something like this??
 function beep() {
@@ -16,21 +78,17 @@ function beep() {
 }
 
 
+function char_if_letter(ch) {
+  return /\p{L}/u.test(ch);
+}
 
-function filter_str(thing, fn) { return [...thing].filter(fn).join(''); }
-
-function map_str(thing, fn) { return [...thing].map(fn).join(''); }
-
-
-function letters_of (str) {
-  return filter_str(str, ch => /\p{L}/u.test(ch)).toUpperCase();
+function letters_of (bag_of_chars) {
+  return [...bag_of_chars].filter(char_if_letter).join('').toUpperCase();
 }
 
 function unused_letters() {
-  const source = source_elt.value;
-  const words = map_str(words_elt.querySelectorAll('.word-input'), inp => inp.value);
   const used = {};
-  for (const ch of letters_of (source+words))
+  for (const ch of letters_of(source_elt.value + all_words().map(word_text).join('')))
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
@@ -45,94 +103,87 @@ function update_letters () {
 }
 
 function rebuild_words() {
-  const source = source_elt.value;
-  if (!source) {
+  const new_source = source_elt.value;
+  if (!new_source) {
     words_elt.innerHTML = '';
-    words_elt.appendChild(document.getElementById('words-placeholder'));
+    words_elt.appendChild(words_placeholder);
     return;
   }
+  const new_initials = letters_of(new_source);
 
-  const initials = letters_of(source);
-  const words = [...words_elt.querySelectorAll('.word-row')];
-  if (initials === words.map(row => row.querySelector('.word-letter').textContent).join(''))
+  const existing_words = all_words();
+  if (new_initials === existing_words.map(word_initial).join(''))
     return;
-
-
-  const existing = {};
-  for (const row  of words) {
-    const ch = row.querySelector('.word-letter').textContent;
-    const text = row.querySelector('.word-input').value;
-    if (!existing[ch]) existing[ch] = [];
-    existing[ch].push(text)
+  const existing_map = {};
+  for (const word of existing_words) {
+    const ch = word_initial(word);
+    if (!existing_map[ch]) existing_map[ch] = [];
+    existing_map[ch].push(word_text(word));
   }
 
   words_elt.innerHTML = '';
 
-  for (let i = 0; i < initials.length; i++) {
-    const ch = initials[i];
-
-    const row = document.createElement('div');
-    row.className = 'word-row';
-
-    const initial = document.createElement('span');
-    initial.className = 'word-letter';
-    initial.textContent = ch;
-    row.appendChild(initial);
-
-    const inp = document.createElement('input');
-    inp.type = 'text';
-    inp.className = 'word-input';
-    inp.dataset.index = i;
-    inp.placeholder = ` word starting with "${ch}"…`;
-    // Find first unused prior word with the same letter
-    inp.value = existing[ch]?.shift() ?? '';
-
-    inp.addEventListener('input', update_letters);
-    // Navigation
-    inp.addEventListener('keydown', e => {
-      if ((e.shiftKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'p')) {
-        const inputs = [...words_elt.querySelectorAll('.word-input')];
-        const i = inputs.indexOf(e.target);
-        const prev = inputs[i - 1];
-        if (prev) prev.focus();
-        e.preventDefault();
-      } else if (e.key === 'Enter' || (e.ctrlKey && e.key === 'n')) {
-        const inputs = [...words_elt.querySelectorAll('.word-input')];
-        const i = inputs.indexOf(e.target);
-        const next = inputs[i + 1];
-        if (next) next.focus();
-        e.preventDefault();
-      }});
-
-    // error checking
-    inp.addEventListener('beforeinput', e => {
-      if (!e.data) return;  // deletion, paste, etc. — let it through for now
-      const unused = unused_letters();
-      for (const ch of letters_of(e.data)) {
-        if (!unused.includes(ch)) {
-
-          //letters_elt.style.backgroundColor = 'pink';
-          //setTimeout(() => letters_elt.style.backgroundColor = '', 300);
-          letters_elt.style.color = 'red';
-          setTimeout(() => letters_elt.style.color = '', 300);
-          beep();
-          e.preventDefault();
-          return;
-        }}});
-
-    row.appendChild(inp);
-
-    words_elt.appendChild(row);
+  for (let i = 0; i < new_initials.length; i++) {
+    const ch = new_initials[i];
+    const text = existing_map[ch]?.shift() ?? '';
+    words_elt.appendChild(make_word_elt(i, ch, text));
   }
 }
 
+source_elt.addEventListener('input', () => { rebuild_words(); update_letters(); refresh_words_overlay(); });
 
-source_elt.addEventListener('input', () => { rebuild_words(); update_letters(); });
-
-quotation_elt.addEventListener('input', update_letters);
-
+quotation_elt.addEventListener('input', () => { update_letters(); refresh_words_overlay(); });
 
 
+// --------------------- Illegal Char Handling -----------------------------------------------------------
+function refresh_words_overlay () {
+  const available_letters = {};
+  for (const ch of letters_of(quotation_elt.value)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
+
+  function check_illegal (ch) {
+    ch = ch.toUpperCase();
+    if (available_letters[ch] > 0) {
+      available_letters[ch]--;
+      return false;
+    }
+    else return true;
+  }
+
+  function render_char (ch) {
+    return (char_if_letter(ch) && check_illegal(ch)) ? `<span class="illegal">${ch}</span>` : ch;
+
+
+  }
+
+  // console.log('refresh_words_overlay called, active:', document.activeElement);
+  // console.log('words:', all_words().map(w => ({inp: word_input(w), display: word_input(w).display})));
+
+
+  for (const word of all_words()) {
+    word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
+    word_input(word).display.innerHTML = [...word_text(word)].map(render_char).join('');
+  }
+
+/*
+  for (const word of all_words()) {
+    const inp = word_input(word);
+    const display = inp.display;
+    //  The active element doesn't need a display and also don't count it for the purpose of 
+    //  checking legality -- just treat it as if it was empty until it gets committed.
+    if (inp === document.activeElement) {
+      display.style.display = 'none';
+      inp.style.display = '';
+    }
+    else {
+      word_initial_elt(word).classList.toggle('illegal', check_illegal(word_initial(word)));
+      display.innerHTML = [...word_text(word)].map(render_char).join('');
+      // display.style.display = '';
+      display.style.display = 'block';
+      inp.style.display = 'none';
+    }
+  }
+*/
+}
 
 // ---------------------Save & Restore -----------------------------------------------------------
 
@@ -140,7 +191,7 @@ function get_puzzle_data() {
   return {
     quotation: quotation_elt.value,
     source: source_elt.value,
-    words: [...words_elt.querySelectorAll('.word-input')].map(inp => inp.value)
+    words: all_words().map(word_text)
   };
 }
 
@@ -148,9 +199,12 @@ function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
   source_elt.value = data.source;
   rebuild_words();
-  const inputs = [...words_elt.querySelectorAll('.word-input')];
-  data.words.forEach((val, i) => { if (inputs[i]) inputs[i].value = val; });
+  const rows = all_words();
+  if (data.words.length !== rows.length)
+    alert(`Bad file: expected ${rows.length} words, got ${data.words.length}`);
+  else data.words.forEach((val, i) => { word_input(rows[i]).value = val; });
   update_letters();
+  refresh_words_overlay();
 }
 
 document.getElementById('save-btn').addEventListener('click', () => {
