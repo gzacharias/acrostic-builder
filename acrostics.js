@@ -210,8 +210,9 @@ function update_error_markup () {
   set_input_html(source_elt, source_html);
 }
 
-// ---------------------Save & Restore -----------------------------------------------------------
+// --------------------- Buttons -----------------------------------------------------------
 
+///  Save
 function get_puzzle_data() {
   return {
     quotation: quotation_elt.value,
@@ -220,6 +221,15 @@ function get_puzzle_data() {
   };
 }
 
+document.getElementById('save-btn').addEventListener('click', () => {
+  const json = JSON.stringify(get_puzzle_data(), null, 2);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
+  a.download = 'acrostic.acr';
+  a.click();
+});
+
+/// Load
 function load_puzzle_data(data) {
   quotation_elt.value = data.quotation;
   source_elt.innerHTML = data.source;
@@ -231,14 +241,6 @@ function load_puzzle_data(data) {
     data.words.forEach((val, i) => { word_input(rows[i]).textContent = val; });
   update_letters();
 }
-
-document.getElementById('save-btn').addEventListener('click', () => {
-  const json = JSON.stringify(get_puzzle_data(), null, 2);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
-  a.download = 'acrostic.acr';
-  a.click();
-});
 
 document.getElementById('load-btn').addEventListener('click', () => {
   document.getElementById('file-input').click();
@@ -252,3 +254,23 @@ document.getElementById('file-input').addEventListener('change', e => {
   reader.readAsText(file);
   e.target.value = '';  // reset so same file can be loaded again
 });
+
+/// Restart
+function restart_puzzle() {
+  if (!confirm('Start a new puzzle? Unsaved changes will be lost.')) return;
+  quotation_elt.value = '';
+  source_elt.innerHTML = '';
+  rebuild_words();
+  update_letters();
+}
+
+document.getElementById('restart-btn').addEventListener('click', restart_puzzle);
+
+/// Quit
+
+if (!window.webkit?.messageHandlers?.quit)
+  document.getElementById('quit-btn').style.display = 'none';
+else
+  document.getElementById('quit-btn').addEventListener('click', () => { window.webkit.messageHandlers.quit.postMessage('')});
+
+                                                       
