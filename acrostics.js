@@ -57,6 +57,20 @@ function set_input_html (elt, html) {
   if (offset) set_cursor_pos(elt, offset);
 }
 
+function clean_word_input (input) {
+  const raw = input.textContent;
+  const filtered = letters_of(raw);
+  if (filtered !== raw) {
+    beep();
+    const pos = get_cursor_pos(input);
+    // Count how many letters precede the cursor in the original text
+    const prefix = [...raw.slice(0, pos ?? raw.length)].filter(char_if_letter).length;
+    input.textContent = filtered;
+    set_cursor_pos(input, prefix);
+  }
+}
+  
+
 function make_word_elt (index, ch, html) {
   const row = document.createElement('div');
   row.className = 'word-row';
@@ -79,7 +93,7 @@ function make_word_elt (index, ch, html) {
 
   input.innerHTML = html;
 
-  input.addEventListener('input', update_letters);
+  input.addEventListener('input', () => { clean_word_input(input); update_letters(); });
 
   input.addEventListener('keydown', e => {
     if ((e.shiftKey && e.key === 'Enter') || (e.ctrlKey && e.key === 'p')) {
@@ -126,7 +140,7 @@ function letters_of (bag_of_chars) {
 
 function unused_letters() {
   const used = {};
-  for (const ch of letters_of(source_text() + map_to_str(all_words(), word_text)))
+  for (const ch of letters_of(source_text()) + map_to_str(all_words(), word_text))
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
