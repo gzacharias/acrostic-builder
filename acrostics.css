@@ -61,7 +61,6 @@
       font-size: 11px;
       font-weight: bold;
       letter-spacing: 0.08em;
-      color: var(--text-color);
   }
 
 #quotation {
@@ -90,7 +89,6 @@
 
   /* Letters: read-only display, same visual size as Quotation */
   #letters {
-      color: var(--text-color);
       background: lightgray;
       border-radius: 4px;
       padding: 8px 10px;
@@ -116,7 +114,7 @@
       display: flex;
       align-items: center;
       /* border: 1px solid lightgray; */
-      padding: 2px 0px;
+      padding: 2px 0;
       border-radius: 4px;
   }
 
@@ -130,9 +128,7 @@
       align-self: stretch;
       display: flex;
       align-items: center;
-      color: var(--text-color);
       background: var(--text-background);
-      border-radius: 4px 0 0 4px;
       font-size: 17px;
       flex-shrink: 0;
   }
@@ -142,67 +138,36 @@
   }
 
   .word-input {
-      background: var(--text-background);
       border: none;
-      color: var(--text-color);
-      resize: none;
-      outline: none;
-      padding: 4px 0px;
-      width: 100%;
+      padding: 4px 0;
   }
+
   .word-input[placeholder]:empty::before {
       padding-left: 6px;
   }
-
-  .word-input:focus {
-      border-color: var(--text-focus-border);
-  }
-
 
   #words-placeholder {
       color: #555;
       font-style: italic;
   }
 
-.clue-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-}
-
-.clue-label {
-    font-size: 17px;
-    white-space: nowrap;
-    color: var(--text-color);
-    min-width: 8em;
-}
-
-.clue-input {
-    background: var(--text-background);
-
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font: inherit;
-    color: var(--text-color);
-    padding: 4px 0px;
-    outline: none;
-    resize: none;
-    flex: 1;
-
-    width: 100%;
+  .clue-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 0;
   }
 
+  .clue-label {
+      font-size: 17px;
+      white-space: nowrap;
+      min-width: 8em;
+  }
 
-.clue-input:focus {
-    border-color: var(--text-focus-border);
-}
-
-.clue-input[placeholder]:empty::before {
-  content: attr(placeholder);
-  color: #999;
-  pointer-events: none;
-}
+  .clue-input {
+      padding: 4px 0;
+      flex: 1;
+  }
 
   .buttons {
       display: flex;

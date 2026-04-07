@@ -135,7 +135,6 @@ function make_word_row (index, ch, html) {
   word_input.className = 'word-input editable';
   word_input.dataset.index = index;
   word_input.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
-  word_input.type = 'text';
   word_input.innerHTML = html;
   word_input.addEventListener('input', () => { clean_word_input(word_input); update_letters(); });
   word_input.addEventListener('keydown', e => { word_navigation_handler(e, word_input_elt) });
@@ -331,7 +330,7 @@ function load_puzzle_data(data) {
 
   clues_table = data.clues ?? {};
   quotation_elt.textContent = data.quotation;
-  source_elt.innerHTML = data.source;
+  source_elt.textContent = data.source;
   rebuild_words();
   const rows = all_word_rows();
   if (data.words.length !== rows.length)
