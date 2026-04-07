@@ -10,6 +10,8 @@ let clue_mode = false;
 function set_clue_mode(on_off) {
   clue_mode = on_off;
   words_container.classList.toggle('clue-mode', clue_mode);
+  document.body.classList.toggle('clue-mode', clue_mode);
+  document.getElementById('words-label').textContent = clue_mode ? 'Clues' : 'Words';
   clue_btn.textContent = (clue_mode ? 'Edit Puzzle' : 'Add Clues');
 }
 
@@ -285,10 +287,13 @@ function toggle_clue_mode () {
     source_elt.contentEditable = 'false';
     // Initialize clues.
     const rows = all_word_rows();
+    const indent =  (Math.max(...rows.map(row => word_input_text(row).length)) + 2) + 'ch';
     for (const row of all_word_rows()) {
       ensure_clue_part(row);
       clue_input_elt(row).textContent = fetch_saved_clue(row);
+      clue_label_elt(row).style.width = indent;
     }
+    
   }
   set_clue_mode(!clue_mode);
 }
