@@ -221,13 +221,19 @@ function get_puzzle_data() {
   };
 }
 
-document.getElementById('save-btn').addEventListener('click', () => {
-  const json = JSON.stringify(get_puzzle_data(), null, 2);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
-  a.download = 'acrostic.acr';
-  a.click();
-});
+if (window.webkit?.messageHandlers?.save)
+  document.getElementById('save-btn').addEventListener('click', () => {
+    const json = JSON.stringify(get_puzzle_data(), null, 2);
+    window.webkit.messageHandlers.save.postMessage(json);
+  })
+else
+  document.getElementById('save-btn').addEventListener('click', () => {
+    const json = JSON.stringify(get_puzzle_data(), null, 2);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([json], {type: 'application/json'}));
+    a.download = 'acrostic.acr';
+    a.click();
+  });
 
 /// Load
 function load_puzzle_data(data) {
@@ -242,9 +248,13 @@ function load_puzzle_data(data) {
   update_letters();
 }
 
-document.getElementById('load-btn').addEventListener('click', () => {
-  document.getElementById('file-input').click();
-});
+if (window.webkit?.messageHandlers?.load)
+  document.getElementById('load-btn').addEventListener('click', () => {
+    window.webkit.messageHandlers.load.postMessage(''); });
+else
+  document.getElementById('load-btn').addEventListener('click', () => {
+    document.getElementById('file-input').click(); });
+
 
 document.getElementById('file-input').addEventListener('change', e => {
   const file = e.target.files[0];
@@ -271,6 +281,7 @@ document.getElementById('restart-btn').addEventListener('click', restart_puzzle)
 if (!window.webkit?.messageHandlers?.quit)
   document.getElementById('quit-btn').style.display = 'none';
 else
-  document.getElementById('quit-btn').addEventListener('click', () => { window.webkit.messageHandlers.quit.postMessage('')});
+  document.getElementById('quit-btn').addEventListener('click', () => {
+    window.webkit.messageHandlers.quit.postMessage('')});
 
                                                        
