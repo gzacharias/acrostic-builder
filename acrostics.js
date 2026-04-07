@@ -24,7 +24,7 @@ function full_word_text (row) { return word_initial(row) + word_input_text(row) 
 function clue_label_elt (row) { return row.querySelector('.clue-label') }
 function clue_label_text (row) {return row.querySelector('.clue-label').textContent }
 function clue_input_elt (row) { return row.querySelector('.clue-input') }
-function clue_input_text (row) { return row.querySelector('.clue-input').value }
+function clue_input_text (row) { return row.querySelector('.clue-input').textContent }
 
 function map_to_str (things, fn) { return [...things].map(fn).join(''); }
 
@@ -132,7 +132,7 @@ function make_word_row (index, ch, html) {
   const word_input = document.createElement('div');
   word_input.style.flex = '1';
   word_input.contentEditable = 'true';
-  word_input.className = 'word-input';
+  word_input.className = 'word-input editable';
   word_input.dataset.index = index;
   word_input.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
   word_input.type = 'text';
@@ -154,9 +154,10 @@ function ensure_clue_part (row) {
     const label = document.createElement('span');
     label.className = 'clue-label';
     clue_part.appendChild(label);
-    const clue_input = document.createElement('input');
-    clue_input.type = 'text';
-    clue_input.className = 'clue-input';
+
+    const clue_input = document.createElement('div');
+    clue_input.contentEditable = 'true';
+    clue_input.className = 'clue-input editable';
     clue_input.addEventListener('keydown', e => { word_navigation_handler(e, clue_input_elt) });
     clue_part.appendChild(clue_input);
     row.appendChild(clue_part);
@@ -164,7 +165,7 @@ function ensure_clue_part (row) {
   // Only need to call this when switching to clue mode.  Once in clue mode, the words don't change.
   const full_word = full_word_text(row);
   clue_label_elt(row).textContent = full_word + ":";
-  clue_input_elt(row).placeholder = `enter clue for ${full_word}…`;
+  clue_input_elt(row).setAttribute('placeholder', `enter clue for ${full_word}…`);
 }
 
 
@@ -174,7 +175,7 @@ function unused_letters() {
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
-  for (const ch of letters_of(quotation_elt.value))
+  for (const ch of letters_of(quotation_elt.textContent))
     if (used[ch] > 0) used[ch]--;  else unused.push(ch);
 
   return unused.sort().join('');
@@ -228,7 +229,7 @@ quotation_elt.addEventListener('input', update_letters);
 // --------------------- Illegal Char Handling -----------------------------------------------------------
 function update_error_markup () {
   const available_letters = {};
-  for (const ch of letters_of(quotation_elt.value)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
+  for (const ch of letters_of(quotation_elt.textContent)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
 
   function char_html (ch) {
     if (char_if_letter(ch)) {
@@ -277,17 +278,17 @@ function toggle_clue_mode () {
     // Save clues from UI before switching, because now will mess around and recreate all the rows.
     save_clues_from_ui();
     // Unfreeze quotation and source.  Since everything was frozen, no need to update anything.
-    quotation_elt.removeAttribute('readonly');
+    quotation_elt.contentEditable = 'true';
     source_elt.contentEditable = 'true';
   } else {
     // Freeze quotation and source
-    quotation_elt.setAttribute('readonly', 'true');
+    quotation_elt.contentEditable = 'false';
     source_elt.contentEditable = 'false';
     // Initialize clues.
     const rows = all_word_rows();
     for (const row of all_word_rows()) {
       ensure_clue_part(row);
-      clue_input_elt(row).value = fetch_saved_clue(row);
+      clue_input_elt(row).textContent = fetch_saved_clue(row);
     }
   }
   set_clue_mode(!clue_mode);
@@ -303,7 +304,7 @@ clue_btn.addEventListener('click', toggle_clue_mode);
 function get_puzzle_data() {
   if (clue_mode) save_clues_from_ui();
   return {
-    quotation: quotation_elt.value,
+    quotation: quotation_elt.textContent,
     source: source_text(),
     words: all_word_rows().map(word_input_text),
     clues: clues_table
@@ -329,7 +330,7 @@ function load_puzzle_data(data) {
   if (clue_mode) toggle_clue_mode();
 
   clues_table = data.clues ?? {};
-  quotation_elt.value = data.quotation;
+  quotation_elt.textContent = data.quotation;
   source_elt.innerHTML = data.source;
   rebuild_words();
   const rows = all_word_rows();
@@ -360,7 +361,7 @@ document.getElementById('file-input').addEventListener('change', e => {
 /// Restart
 function restart_puzzle() {
   if (!confirm('Start a new puzzle? Unsaved changes will be lost.')) return;
-  quotation_elt.value = '';
+  quotation_elt.textContent = '';
   source_elt.innerHTML = '';
   rebuild_words();
   update_letters();

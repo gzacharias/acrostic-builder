@@ -29,6 +29,22 @@
       margin-bottom: 20px;
   }
 
+  .editable {
+    background: var(--text-background);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font: inherit;
+    color: var(--text-color);
+    padding: 8px 10px;
+    resize: none;
+    outline: none;
+    width: 100%;
+}
+
+.editable:focus {
+    border-color: var(--text-focus-border);
+}
+
   .panel {
       display: flex;
       flex-direction: column;
@@ -48,20 +64,12 @@
       color: var(--text-color);
   }
 
-  textarea, input[type="text"], .editable {
-      background: var(--text-background);
-      border: 1px solid var(--border-color);
-      border-radius: 4px;
-      font: inherit;
-      color: var(--text-color);
-      padding: 8px 10px;
-      resize: none;
-      outline: none;
-      width: 100%;
-  }
-  textarea:focus, input[type="text"]:focus, .editable:focus {
-      border-color: var(--text-focus-border);
-  }
+#quotation {
+  min-height: 5.4em;
+  white-space: pre-wrap;
+}
+
+
 
 .static-text {
     background: var(--text-background);
@@ -135,6 +143,7 @@
 
   .word-input {
       background: var(--text-background);
+      border: none;
       color: var(--text-color);
       resize: none;
       outline: none;
@@ -171,19 +180,29 @@
 
 .clue-input {
     background: var(--text-background);
+
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font: inherit;
     color: var(--text-color);
-    padding: 4px 8px;
+    padding: 4px 0px;
     outline: none;
+    resize: none;
     flex: 1;
-}
+
+    width: 100%;
+  }
+
 
 .clue-input:focus {
     border-color: var(--text-focus-border);
 }
 
+.clue-input[placeholder]:empty::before {
+  content: attr(placeholder);
+  color: #999;
+  pointer-events: none;
+}
 
   .buttons {
       display: flex;
