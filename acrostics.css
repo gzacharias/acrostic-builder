@@ -1,44 +1,44 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-      --illegal-color: red;
-      --text-color: black;
-      --text-background: white;
-      --text-focus-border: #007acc;
-      --border-color: #3c3c3c;
-      --button-color: #3c3c3c;
-      --button-text-color: #d4d4d4;
-      --button-border-color: #555;
-  }
+:root {
+    --illegal-color: red;
+    --text-color: black;
+    --text-background: white;
+    --text-focus-border: #007acc;
+    --border-color: #3c3c3c;
+    --button-color: #3c3c3c;
+    --button-text-color: #d4d4d4;
+    --button-border-color: #555;
+}
 
-  body {
-      font-family: monospace;
-      font-size: 15px;
-      background: #cecfb2;
-      color: black;
-      padding: 24px;
-      max-width: 800px;
-      margin: 0 auto;
-  }
+body {
+    font-family: monospace;
+    font-size: 15px;
+    background: #cecfb2;
+    color: black;
+    padding: 24px;
+    max-width: 800px;
+    margin: 0 auto;
+}
 
-  body.clue-mode #letters-subview { display: none; }
+body.clue-mode #letters-subview { display: none; }
 
-  body.clue-mode #quotation, body.clue-mode #source {
+body.clue-mode #quotation, body.clue-mode #source {
     background: lightgray;
     border-color: transparent;
     cursor: default;
-  }
+}
 
 
-  h1 {
-      text-align: center;
-      text-transform: uppercase;
-      font-size: 18px;
-      color: darkblue;
-      margin-bottom: 20px;
-  }
+h1 {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: 18px;
+    color: darkblue;
+    margin-bottom: 20px;
+}
 
-  .editable {
+.editable {
     background: var(--text-background);
     border: 1px solid var(--border-color);
     border-radius: 4px;
@@ -54,27 +54,27 @@
     border-color: var(--text-focus-border);
 }
 
-  .panel {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-  }
+.panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
 
-  .subview {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-  }
+.subview {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 
-  label {
-      font-size: 11px;
-      font-weight: bold;
-      letter-spacing: 0.08em;
-  }
+label {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+}
 
 #quotation {
-  min-height: 5.4em;
-  white-space: pre-wrap;
+    min-height: 5.4em;
+    white-space: pre-wrap;
 }
 
 
@@ -91,121 +91,121 @@
 
 
 [contenteditable][placeholder]:empty::before {
-  content: attr(placeholder);
-  color: #999;
-  pointer-events: none;
+    content: attr(placeholder);
+    color: #999;
+    pointer-events: none;
 }
 
-  /* Letters: read-only display, same visual size as Quotation */
-  #letters {
-      background: lightgray;
-      border-radius: 4px;
-      padding: 8px 10px;
-      min-height: 5.4em;   /* ~3-5 lines */
-      white-space: pre-wrap;
-      word-break: break-all;
-      line-height: 1.5;
-  }
+/* Letters: read-only display, same visual size as Quotation */
+#letters {
+    background: lightgray;
+    border-radius: 4px;
+    padding: 8px 10px;
+    min-height: 5.4em;   /* ~3-5 lines */
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
 
-  /* Words column */
-  #words-container {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-  }
+/* Words column */
+#words-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
 
-  .word-part { display: flex; }
-  #words-container .clue-part {display: none; }
-  #words-container.clue-mode .word-part {display: none; }
-  #words-container.clue-mode .clue-part {display: flex; }
+.word-part { display: flex; }
+#words-container .clue-part {display: none; }
+#words-container.clue-mode .word-part {display: none; }
+#words-container.clue-mode .clue-part {display: flex; }
 
-  .word-row {
-      display: flex;
-      align-items: center;
-      /* border: 1px solid lightgray; */
-      padding: 2px 0;
-      border-radius: 4px;
-  }
+.word-row {
+    display: flex;
+    align-items: center;
+    /* border: 1px solid lightgray; */
+    padding: 2px 0;
+    border-radius: 4px;
+}
 
-  .illegal {
-      color: var(--illegal-color);
-      font-weight: bold;
-  }
+.illegal {
+    color: var(--illegal-color);
+    font-weight: bold;
+}
 
 
-  .word-letter {
-      align-self: stretch;
-      display: flex;
-      align-items: center;
-      background: var(--text-background);
-      font-size: 17px;
-      flex-shrink: 0;
-  }
+.word-letter {
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+    background: var(--text-background);
+    font-size: 17px;
+    flex-shrink: 0;
+}
 
-  .word-letter.illegal {
-      color: var(--illegal-color);
-  }
+.word-letter.illegal {
+    color: var(--illegal-color);
+}
 
-  .word-input {
-      border: none;
-      padding: 4px 0;
-  }
+.word-input {
+    border: none;
+    padding: 4px 0;
+}
 
-  .word-input[placeholder]:empty::before {
-      padding-left: 6px;
-  }
+.word-input[placeholder]:empty::before {
+    padding-left: 6px;
+}
 
-  #words-placeholder {
-      color: #555;
-      font-style: italic;
-  }
+#words-placeholder {
+    color: #555;
+    font-style: italic;
+}
 
-  .clue-part {
-      display: flex;
-      align-items: flex-end;
-      flex: 1;
-  }
+.clue-part {
+    display: flex;
+    align-items: baseline;
+    flex: 1;
+}
 
-  .clue-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 2px 0;
-  }
+.clue-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+}
 
-  .clue-label {
-      font-size: 17px;
-      white-space: nowrap;
-      flex-shrink: 0;
-  }
+.clue-label {
+    font-size: 17px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
 
-  .clue-input {
-      padding: 4px 0;
-      flex: 1;
-  }
+.clue-input {
+    padding: 4px 0 4px 6px;
+    flex: 1;
+}
 
-  .buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 8px;
-  }
+.buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+}
 
-  button {
-      background: var(--button-color);
-      border: 1px solid var(--button-border-color);
-      border-radius: 4px;
-      color: var(--button-text-color);
-      font-family: monospace;
-      font-size: 14px;
-      padding: 6px 14px;
-      cursor: pointer;
-  }
+button {
+    background: var(--button-color);
+    border: 1px solid var(--button-border-color);
+    border-radius: 4px;
+    color: var(--button-text-color);
+    font-family: monospace;
+    font-size: 14px;
+    padding: 6px 14px;
+    cursor: pointer;
+}
 
-  button:hover {
-      background: #4c4c4c;
-      border-color: #777;
-  }
+button:hover {
+    background: #4c4c4c;
+    border-color: #777;
+}
 
 
 button:disabled {
@@ -218,3 +218,17 @@ button:disabled:hover {
     border-color: var(--button-border-color);
 }
 
+#thinking-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #3c3c3c;
+    color: #d4d4d4;
+    font-family: monospace;
+    font-size: 16px;
+    padding: 40px 48px;
+    border-radius: 6px;
+    border: 1px solid #777;
+    z-index: 1000;
+}
