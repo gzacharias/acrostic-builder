@@ -93,6 +93,36 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
 class MessageHandler: NSObject, WKScriptMessageHandler {
     weak var webView: WKWebView?
     
+    lazy var handlers: [String: (WKScriptMessage) -> Void] = [
+        "quit": quit_handler,
+        "save": save_handler,
+        "suggestClues": suggestClues_handler,
+        "consoleLog": consoleLog_handler
+    ]
+
+    func consoleLog_handler (_ message: WKScriptMessage) {
+#if DEBUG
+        print("JS:", message.body)
+#endif
+    }
+
+    func suggestClues_handler(_ message: WKScriptMessage) {
+        guard let body = message.body as? [String: Any],
+              let system = body["system"] as? String,
+              let words = body["words"] as? String else { return }
+        Task {
+            do {
+                let result = try await Self.callClaude(prompt: system, content: words)
+                await MainActor.run {
+                    self.webView?.evaluateJavaScript("receive_clue_suggestions(\(result))")
+                }
+            } catch {
+                await MainActor.run {
+                    self.webView?.evaluateJavaScript("receive_clue_suggestions(null)")
+                }
+            }
+        }
+    }
     static func callClaude(prompt: String, content: String) async throws -> String {
         let url = URL(string: "https://api.anthropic.com/v1/messages")!
         var request = URLRequest(url: url)
@@ -112,48 +142,28 @@ class MessageHandler: NSObject, WKScriptMessageHandler {
         return String(data: data, encoding: .utf8)!
     }
     
+    func quit_handler(_ message: WKScriptMessage) {
+        DispatchQueue.main.async { NSApp.terminate(nil) }
+    }
+    func save_handler(_ message: WKScriptMessage) {
+        guard let json = message.body as? String else { return }
+        DispatchQueue.main.async {
+            let panel = NSSavePanel()
+            // should check if file already exists and add digits if it does.
+            panel.nameFieldStringValue = "acrostic.acr"
+            panel.begin { response in
+                if response == .OK {
+                    if let url = panel.url {
+                        try? json.write(to: url, atomically: true, encoding: .utf8)
+                    }
+                }
+            }
+        }
+    }
+
     func userContentController(_ userContentController: WKUserContentController,
                                 didReceive message: WKScriptMessage) {
         print("entered controller:",  message.name)
-        switch message.name {
-        case "save":
-            guard let json = message.body as? String else { return }
-            DispatchQueue.main.async {
-                let panel = NSSavePanel()
-                // should check if file already exists and add digits if it does.
-                panel.nameFieldStringValue = "acrostic.acr"
-                panel.begin { response in
-                    if response == .OK {
-                        if let url = panel.url {
-                            try? json.write(to: url, atomically: true, encoding: .utf8)
-                        }
-                    }
-                }
-            }
-        case "quit":
-            DispatchQueue.main.async { NSApp.terminate(nil) }
-        case "suggestClues":
-            guard let body = message.body as? [String: Any],
-                  let system = body["system"] as? String,
-                  let words = body["words"] as? String else { return }
-            Task {
-                do {
-                    let result = try await Self.callClaude(prompt: system, content: words)
-                    await MainActor.run {
-                        self.webView?.evaluateJavaScript("receive_clue_suggestions(\(result))")
-                    }
-                } catch {
-                    await MainActor.run {
-                        self.webView?.evaluateJavaScript("receive_clue_suggestions(null)")
-                    }
-                }
-            }
-#if DEBUG
-        case "consoleLog":
-            print("JS:", message.body)
-#endif
-        default:
-            break
-        }
+        handlers[message.name]?(message)
     }
 }
