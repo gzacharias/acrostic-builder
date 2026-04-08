@@ -344,48 +344,65 @@ async function decrypt_api_key(passphrase) {
   }
 }
 
-async function suggest_clues() {
-  const api_key = await get_api_key();
-  if (!api_key) return; // already alerted if error
 
-  const no_clues = [];
-  for (const row of all_word_rows()) if (!clue_input_text(row)) no_clues.push(row);
-  if (no_clues.length === 0) return;
-
-  const overlay = document.getElementById('thinking-overlay');
-  overlay.style. display = 'block';
-
-  try {
-    const word_list = [...no_clues].map((row, i) => `${i+1}. ${full_word_text(row)}`).join('\n');
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': api_key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'  // required for browser calls
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: `You are creating a crossword puzzle.  Come up with clues for the following answers.  Reply with only a numbered list, one per line, nothing else:\n${word_list}`
-        }]
-      })
-    });
-    const data = await response.json();
-    const clues = data.content[0].text.split('\n').map(line => line.replace(/^\d+\.\s*/, ''))
-    if (clues.length !== no_clues.length) 
-      console.log("Mismatched answer from claude");
-    else {
-      for (let i = 0; i < clues.length; i++)
-        clue_input_elt(no_clues[i]).textContent = clues[i];
-    }
-  } finally {
-    overlay.style.display = 'none';
-  }  
+async function post_message(system, words) {
+  if (window.webkit?.messageHandlers?.suggestClues) {
+    console.log('in post_message webkit version');
+    document.getElementById('thinking-overlay').style.display = 'block';
+    window.webkit.messageHandlers.suggestClues.postMessage({system: system, words: words}); // will callback to receive_clue_suggestions
+  } else {
+    console.log('in post_message browser version');
+    const api_key = await get_api_key();
+    if (!api_key) return;
+    try {
+      document.getElementById('thinking-overlay').style.display = 'block';
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': api_key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true'  // required for browser calls
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: system,
+          messages: [{ role: 'user', content: words }]
+        })
+      });
+      const data = await response.json();
+      receive_clue_suggestions(data);
+    } finally { document.getElementById('thinking-overlay').style.display = 'none';  }
+  }
 }
+
+async function suggest_clues() {
+  const no_clues = all_word_rows().filter(row => !clue_input_text(row));
+     console.log(no_clues); // ***
+  const n = no_clues.length;
+  if (n === 0) return;
+  post_message(`You are creating clues for a crossword puzzle. The user will give you a list of ${n} words, one per line. ` + 
+               "Do not include the word in your clue. " +
+               `Reply with corresponding clues, one per line, in the same order, nothing else. ` +
+               `Your answer must have exactly ${n} lines, no intro, no summary. ` +
+               "Don't ask questions, if you don't understand something, just do your best. ",
+               no_clues.map(full_word_text).join('\n')+'\n');
+}
+
+
+function receive_clue_suggestions(data) {
+  document.getElementById('thinking-overlay').style.display = 'none';
+  if (!data) { console.log('Error getting clue suggestions'); return; }
+  console.log('in receive');
+  console.log(data.content[0].text);
+  const clues = data.content[0].text.split('\n');
+  const no_clues = all_word_rows().filter(row => !clue_input_text(row));
+  if (clues.length !== no_clues.length) { console.log("Mismatched answer from claude"); debugger; }
+  else for (let i = 0; i < clues.length; i++) clue_input_elt(no_clues[i]).textContent = clues[i];
+}
+
+
 
 // --------------------- Buttons -----------------------------------------------------------
 
