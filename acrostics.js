@@ -347,11 +347,9 @@ async function decrypt_api_key(passphrase) {
 
 async function post_message(system, words) {
   if (window.webkit?.messageHandlers?.suggestClues) {
-    console.log('in post_message webkit version');
     document.getElementById('thinking-overlay').style.display = 'block';
     window.webkit.messageHandlers.suggestClues.postMessage({system: system, words: words}); // will callback to receive_clue_suggestions
   } else {
-    console.log('in post_message browser version');
     const api_key = await get_api_key();
     if (!api_key) return;
     try {
@@ -379,7 +377,6 @@ async function post_message(system, words) {
 
 async function suggest_clues() {
   const no_clues = all_word_rows().filter(row => !clue_input_text(row));
-     console.log(no_clues); // ***
   const n = no_clues.length;
   if (n === 0) return;
   post_message(`You are creating clues for a crossword puzzle. The user will give you a list of ${n} words, one per line. ` + 
@@ -394,8 +391,6 @@ async function suggest_clues() {
 function receive_clue_suggestions(data) {
   document.getElementById('thinking-overlay').style.display = 'none';
   if (!data) { console.log('Error getting clue suggestions'); return; }
-  console.log('in receive');
-  console.log(data.content[0].text);
   const clues = data.content[0].text.split('\n');
   const no_clues = all_word_rows().filter(row => !clue_input_text(row));
   if (clues.length !== no_clues.length) { console.log("Mismatched answer from claude"); debugger; }
