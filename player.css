@@ -1,0 +1,101 @@
+:root {
+    --page-color: #f5f5f5;
+    --grid-font-color: #1e1e1e;
+    --punct-color: #bbb;
+    --cell-border-size: 2px;
+    --cell-size: calc(35px + var(--cell-border-size));
+
+}
+@media (prefers-color-scheme: dark) {
+    :root { --page-color: #1a1a1a;
+            --grid-font-color: #3c3c3c;
+            --punct-color: #888;
+          }}
+
+body {
+    font-family: sans-serif;
+    padding: 1rem;
+    background: var(--page-color);
+}
+
+@media (prefers-color-scheme: dark) {
+    body { color: #e0e0e0; } /* there is no color: in the body, so why this? */
+}
+
+#puzzle-container { overflow-x: auto; padding: 0.5rem 0; }
+
+#quote-grid {
+    display: inline-grid;
+    grid-template-columns: repeat(var(--cols), var(--cell-size));
+    grid-auto-rows: var(--cell-size);
+    background: inherit; /* this only affects the incomplete last line of the grid */
+}
+
+.grid-cell {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box; /* the border is inside the cell */
+    border: var(--cell-border-size) solid gray;
+    margin-right: calc(-1 * var(--cell-border-size));
+    margin-bottom: calc(-1 * var(--cell-border-size));
+    font-size: 20px;
+    font-family: monospace;
+}
+
+.letter-cell {
+    background: #fff;
+}
+
+@media (prefers-color-scheme: dark) {
+    .letter-cell { background: #2a2a2a; }
+}
+
+.punct-cell {
+    background: var(--grid-font-color);
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 4px;
+}
+
+.punct-cell-text {
+    color: var(--punct-color);
+}
+
+.cell-id-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1px 2px 0;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.cell-id-left { font-size: 11px; color: black; }
+
+.cell-id-right { font-size: 11px; color: darkblue; }
+
+
+.cell-input-container { flex: 1; display: flex; align-items: center; justify-content: center; }
+
+.cell-input-container input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: #111;
+    outline: none;
+    padding: 0;
+}
+@media (prefers-color-scheme: dark) {
+    .cell-input-container input { color: #e0e0e0; border-bottom-color: #555; }
+}
+.cell-input input:focus {
+    background: #e8f0fc;
+}
+@media (prefers-color-scheme: dark) {
+    .cell-input-container input:focus { background: #1a2a4a; }
+}
