@@ -30,24 +30,6 @@ function clue_input_text (row) { return row.querySelector('.clue-input').textCon
 
 function map_to_str (things, fn) { return [...things].map(fn).join(''); }
 
-// Is there really no predefined way to do something like this??
-const audio_ctx = new AudioContext();
-function beep() {
-  const osc = audio_ctx.createOscillator();
-  osc.connect(audio_ctx.destination);
-  osc.frequency.value = 440;
-  osc.start();
-  osc.stop(audio_ctx.currentTime + 0.1);
-}
-
-function char_if_letter(ch) {
-  return /\p{L}/u.test(ch);
-}
-
-function letters_of (bag_of_chars) {
-  return [...bag_of_chars].filter(char_if_letter).join('').toUpperCase();
-}
-
 function get_cursor_pos(elt) {
   const sel = window.getSelection();
   if (!sel.rangeCount) return null;
@@ -96,7 +78,7 @@ function clean_word_input (input) {
     if (filtered.length !== raw.length) beep(); // means going to ignore something.
     const pos = get_cursor_pos(input);
     // Count how many letters precede the cursor in the original text
-    const prefix = [...raw.slice(0, pos ?? raw.length)].filter(char_if_letter).length;
+    const prefix = [...raw.slice(0, pos ?? raw.length)].filter(is_letter).length;
     input.textContent = filtered;
     set_cursor_pos(input, prefix);
   }
@@ -122,46 +104,32 @@ function make_word_row (index, ch, html) {
   const row = document.createElement('div');
   row.className = 'word-row';
 
-  const word_part = document.createElement('div');
-  word_part.className = 'word-part';
-  word_part.style.flex = '1';
-
-  const initial = document.createElement('span');
-  initial.className = 'word-letter';
-  initial.textContent = ch;
-  word_part.appendChild(initial);
-
-  const word_input = document.createElement('div');
-  word_input.style.flex = '1';
-  word_input.contentEditable = 'true';
-  word_input.className = 'word-input editable';
-  word_input.dataset.index = index;
-  word_input.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
-  word_input.innerHTML = html;
-  word_input.addEventListener('input', () => { clean_word_input(word_input); update_letters(); });
-  word_input.addEventListener('keydown', e => { word_navigation_handler(e, word_input_elt) });
-  word_part.appendChild(word_input);
-
-  row.appendChild(word_part);
-
+  add_div(row, 'word-part',
+          word_part => { word_part.style.flex = '1';
+                         add_span(word_part, 'word-letter', ch);
+                         add_div(word_part,  'word-input editable',
+                                 elt => { elt.style.flex = '1';
+                                          elt.contentEditable = 'true';
+                                          elt.dataset.index = index;
+                                          elt.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
+                                          elt.innerHTML = html;
+                                          elt.addEventListener('input', () => { clean_word_input(elt); update_letters(); });
+                                          elt.addEventListener('keydown', e => { word_navigation_handler(e, word_input_elt) });
+                                        });
+                       });
   return row;
 }
 
 function ensure_clue_part (row) {
   if (!row.querySelector('.clue-part')) {
-    const clue_part = document.createElement('div');
-    clue_part.className = 'clue-part';
-    clue_part.style.flex = '1';
-    const label = document.createElement('span');
-    label.className = 'clue-label';
-    clue_part.appendChild(label);
-
-    const clue_input = document.createElement('div');
-    clue_input.contentEditable = 'true';
-    clue_input.className = 'clue-input editable';
-    clue_input.addEventListener('keydown', e => { word_navigation_handler(e, clue_input_elt) });
-    clue_part.appendChild(clue_input);
-    row.appendChild(clue_part);
+    add_div(row, 'clue-part',
+            elt => { elt.style.flex = '1';
+                     add_span(elt, 'clue-label');
+                     add_div(elt, 'clue-input editable',
+                             elt => { elt.contentEditable = 'true';
+                                      elt.addEventListener('keydown', e => { word_navigation_handler(e, clue_input_elt) });
+                                    })
+                   });
   }
   // Only need to call this when switching to clue mode.  Once in clue mode, the words don't change.
   const full_word = full_word_text(row);
@@ -233,7 +201,7 @@ function update_error_markup () {
   for (const ch of letters_of(quotation_elt.textContent)) available_letters[ch] = (available_letters[ch] ?? 0) + 1;
 
   function char_html (ch) {
-    if (char_if_letter(ch)) {
+    if (is_letter(ch)) {
       const upper_ch = ch.toUpperCase();
       if (available_letters[upper_ch] > 0) {
         available_letters[upper_ch]--;
