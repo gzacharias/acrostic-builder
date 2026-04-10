@@ -13,7 +13,7 @@ function is_letter(ch) {
 }
 
 function letters_of (bag_of_chars) {
-  if (bag_of_chars === null || bag_of_chars ===  undefined) {
+  if (bag_of_chars == null) {
     console.log("bad call to letters_of");
     debugger;
   }
@@ -22,14 +22,14 @@ function letters_of (bag_of_chars) {
 
 function add_elt (parent, type, init_fn) {
   const elt = document.createElement(type);
-  if (init_fn !== undefined) init_fn(elt);
+  if (init_fn) init_fn(elt);
   parent.appendChild(elt);
   return elt;
 }
 
 function add_div (parent, class_name, init_fn) {
   return add_elt (parent, 'div', e => { if (class_name) e.className = class_name;
-                                        init_fn(e);
+                                        if (init_fn) init_fn(e);
                                       });
 }
 
@@ -37,12 +37,14 @@ function add_span (parent, class_name, text_or_init_fn) {
   return add_elt (parent, 'span', e => { if (class_name) e.className = class_name;
                                          if (typeof text_or_init_fn === 'function')
                                            text_or_init_fn(e);
-                                         else if (text_or_init_fn !== undefined)
+                                         else if (text_or_init_fn)
                                            e.textContent = text_or_init_fn;
                                        });
 
 }
 
-function add_input(parent, type, init_fn) {
-  return add_elt (parent, 'input', e => { e.type = type; init_fn(e) });
+function add_text_input(parent, class_name, init_fn) {
+  return add_elt (parent, 'input', e => { e.type = 'text';
+                                          if (class_name) e.className = class_name;
+                                          if (init_fn) init_fn(e); });
 }

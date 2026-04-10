@@ -24,6 +24,24 @@ body {
 
 #puzzle-container { overflow-x: auto; padding: 0.5rem 0; }
 
+.letter-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: none;
+    padding: 0;
+    caret-color: transparent;
+    text-align: center;
+    background: transparent;
+    text-transform: uppercase;
+    outline: none;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: 500;
+    color: #111;
+}
+
+/* --------------------------- The Grid  --------------------------- */
+
 #quote-grid {
     display: inline-grid;
     grid-template-columns: repeat(var(--cols), var(--cell-size));
@@ -40,6 +58,12 @@ body {
     margin-bottom: calc(-1 * var(--cell-border-size));
     font-size: 20px;
     font-family: monospace;
+}
+
+.grid-cell.selected {
+    outline: 3px solid blue;
+    /* outline-offset: -1px; */ /* Pulls it inward  slightly */
+    z-index: 1;
 }
 
 .letter-cell {
@@ -76,20 +100,10 @@ body {
 
 .cell-input-container { flex: 1; display: flex; align-items: center; justify-content: center; }
 
-.cell-input-container input {
-    width: 100%;
+.cell-input-container .letter-input {
     height: 100%;
-    border: none;
-    background: transparent;
-    text-align: center;
-    font-size: inherit;
-    font-family: inherit;
-    font-weight: 500;
-    text-transform: uppercase;
-    color: #111;
-    outline: none;
-    padding: 0;
 }
+
 @media (prefers-color-scheme: dark) {
     .cell-input-container input { color: #e0e0e0; border-bottom-color: #555; }
 }
@@ -98,4 +112,68 @@ body {
 }
 @media (prefers-color-scheme: dark) {
     .cell-input-container input:focus { background: #1a2a4a; }
+}
+
+/* --------------------------- Clues  --------------------------- */
+
+
+#clues-container {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+.clues-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.clue-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+.clue-label {
+    font-weight: bold;
+    font-size: 15px;
+    min-width: 1.5rem;
+    padding-top: 4px;
+    color: darkblue;
+}
+.clue-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.clue-boxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+}
+.clue-box {
+    width: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.clue-box-number {
+    font-size: 9px;
+    font-family: monospace;
+    color: #888;
+}
+.clue-box .letter-input {
+    border-bottom: 1px solid #ccc;
+    font-size: 16px;
+    font-family: monospace;
+    height: 20px;
+}
+
+.clue-box input.selected {
+    outline: 2px solid blue;
+}
+
+.clue-text {
+    font-size: 13px;
+    color: #444;
 }
