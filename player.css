@@ -106,6 +106,29 @@ body {
     background: #e8f0fc;
 }
 
+/* --------------------------- Source  --------------------------- */
+
+#source-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+.source-box {
+    width: var(--clue-box-size);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.source-box .letter-input {
+    border-bottom: 1px solid black;
+    font-size: var(--clue-input-font-size);
+    font-family: monospace;
+    height: var(--clue-box-size);
+}
+
 /* --------------------------- Clues  --------------------------- */
 
 

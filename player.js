@@ -1,7 +1,10 @@
+// TODO: save in reasonable format
 // TODO: add panel to show quote source
 // TODO: add button for Show Illegal
+//  TODO: in builder, provide support for a source hint, would be like "Author only"
 
 
+// TODO: tooltips.
 // TODO: make up/down arrow work in the grid
 // TODO: show which cell (in grid or in clues) is actually the focus, which determines motion.
 //    In fact, maybe should just show whole grid or whole clue area being selected, as it's
@@ -21,13 +24,12 @@ document.documentElement.style.setProperty('--cols', COLS);
 document.addEventListener('keydown', e => {
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
     const grid_cell = document.querySelector('.grid-cell.selected');
-    const grid_input = grid_cell?.querySelector('input');
-    const clue_input = document.querySelector('.clue-box input.selected');
-    if (grid_input && clue_input) {
-      if (document.activeElement !== grid_input && document.activeElement !== clue_input) {
-        // When user selects some random static text on the page, activeElements becomes the whole body.
-        // Ideally we'd remember which section user was in last so can return focus to it.  For now always
-        // just go to the grid.
+    if (grid_cell) {
+      // When user selects some random static text on the page, activeElements becomes the whole body, and
+      // so input is thrown away. Ideally we'd remember which section user was in last so can return focus
+      // to it.  For now always just go to the grid.
+      const grid_input = grid_cell.querySelector('input');
+      if (!Object.values(grid_input._inputs).includes(document.activeElement)) {
         e.preventDefault();
         grid_input.focus();
         // Now pass the key on to the grid.
@@ -35,11 +37,55 @@ document.addEventListener('keydown', e => {
           key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, bubbles: true
         }));
       }
-    }
-    else // just a sanity check
-      if (grid_input || clue_input) debugger; /* should be both or none */
-  }
+    }};
 });
+
+function handle_letter_input (e, inputs, this_input) {
+  if (inputs[+this_input.dataset.index] !== this_input) debugger;
+  function move_by (offset) {
+    let pos = +this_input.dataset.index + offset;
+    if (pos < 0)  pos = inputs.length - 1;
+    if (pos >= inputs.length) pos = 0;
+    inputs[pos].focus();
+  }
+  function set_value (ch) {
+    const ans = this_input.dataset.answer;
+    [...Object.values(this_input._inputs)].forEach(inp => { inp.value = ch;
+                                                            inp.classList.toggle('illegal', ch && ch !== ans); })
+  }
+
+  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    if (is_letter(e.key)) {
+      set_value(e.key.toUpperCase());
+      move_by(+1);
+    }
+    else if (e.key == ' ') { // delete and stay in place
+      set_value('');
+    }
+    else {} // Ignore.  Might want to beep or something.
+  } else if (e.key === 'Backspace' || e.key === 'Delete') {
+    e.preventDefault();
+    set_value('');
+    move_by(-1);
+  } else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
+    e.preventDefault();
+    move_by(-1);
+  } else if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
+    e.preventDefault();
+    move_by(+1);
+  }
+}
+
+function handle_selection_change (grid_input) {
+  const selected = document.querySelectorAll('.selected');
+  if (selected) selected.forEach((elt, i) => elt.classList.remove('selected'));
+  grid_input.closest('.grid-cell').classList.add('selected');
+  grid_input._inputs.clue.classList.add('selected');
+  grid_input._inputs.source?.classList.add('selected');
+}
+
+
 
 
 // This will eventually come from a loaded puzzle file.
@@ -82,7 +128,7 @@ function init_puzzle_data (puzzle) {
   let next_letter_index = 0;
   const available_cells = {}; // each letter -> all the possible cells for it.
 
-  quote_cells = [...puzzle.quote.toUpperCase()].map((ch, index) => {
+  const quote_cells = [...puzzle.quote.toUpperCase()].map((ch, index) => {
     const cell = { index: index, char: ch };
     if (is_letter(ch)) {
       cell.letter_index = next_letter_index++;
@@ -96,7 +142,7 @@ function init_puzzle_data (puzzle) {
   }
 
   let clue_index = 0;
-  words = puzzle.words.map((arr, word_index) => {
+  const words = puzzle.words.map((arr, word_index) => {
     const word = arr[0].toUpperCase();
     const clue = arr[1];
     return { word: word,
@@ -116,6 +162,17 @@ function init_puzzle_data (puzzle) {
 // letter { char, clue_index, letter_index} // or maybe cell.letter_index.
 
 function render_puzzle (puzzle_data) {
+
+  function add_letter_input (parent, index, answer, container, init_fn) {
+    return add_text_input(parent, 'letter-input', elt => { elt.dataset.index = index;
+                                                           elt.dataset.answer = answer;
+                                                           elt._inputs = {self: elt};
+                                                           if (container)
+                                                             container.addEventListener('click', () => elt.focus());
+                                                           if (init_fn) init_fn(elt);
+                                                         });
+  }
+
   const grid = document.getElementById('quote-grid');
   grid.innerHTML = '';
   for (const cell_data of puzzle_data.quote_cells)
@@ -126,15 +183,31 @@ function render_puzzle (puzzle_data) {
                                          add_span(elt, 'cell-id-right', word_index_label(cell_data.word_index))
                                        });
                         add_div(cell, 'cell-input-container',
-                                elt => add_text_input(elt, 'letter-input', elt => { elt.dataset.index = cell_data.letter_index;
-                                                                                    elt.dataset.answer = cell_data.char;
-                                                                                    cell.addEventListener('click', () => elt.focus());
-                                                                                  }));
+                                elt => add_letter_input(elt, cell_data.letter_index, cell_data.char, cell));
                       })
 
     else
       add_div(grid, 'grid-cell punct-cell', el => add_span(el, 'punct-cell-text', cell_data.char));
   const grid_inputs = [...grid.querySelectorAll('.cell-input-container .letter-input')];
+
+
+  const src_container = document.getElementById('source-container');
+  src_container.innerHTML = '';
+
+  for (const word_data of puzzle_data.words) {
+    const initial = word_data.letters[0];
+    const box = add_div(src_container, 'source-box',
+                        box => { add_letter_input(box, word_data.word_index, initial.char, box,
+                                                  elt => { elt.classList.add('source-input');
+                                                           const grid_input = grid_inputs[initial.letter_index];
+                                                           elt._inputs.grid = grid_input;
+                                                           grid_input._inputs.source = elt;
+                                                         });
+                               });
+  }
+
+  const source_inputs = [...src_container.querySelectorAll('.letter-input')];
+
 
   const container = document.getElementById('clues-container');
   container.innerHTML = '';
@@ -150,14 +223,15 @@ function render_puzzle (puzzle_data) {
              elt => { add_div(elt, 'clue-boxes',
                                elt => {for (const ltr of word_data.letters)
                                           add_div(elt, 'clue-box',
-                                                  box => { add_text_input(box, 'letter-input', elt => { elt.dataset.index = ltr.clue_index;
-                                                                                                        elt.dataset.answer = ltr.char;
-                                                                                                        const grid_input = grid_inputs[ltr.letter_index];
-                                                                                                        elt._grid_input = grid_input;
-                                                                                                        grid_input._clue_input = elt;
-                                                                                                        // Any click in the box, focus on me!
-                                                                                                        box.addEventListener('click', () => elt.focus());
-                                                                                                      });
+                                                  box => { add_letter_input(box, ltr.clue_index, ltr.char, box,
+                                                                            elt => { const grid_input = grid_inputs[ltr.letter_index];
+                                                                                     grid_input._inputs.clue = elt;
+                                                                                     elt._inputs.grid = grid_input;
+                                                                                     const source_input = grid_input._inputs.source;
+                                                                                     if (source_input) {
+                                                                                       source_input._inputs.clue = elt;
+                                                                                       elt._inputs.source = source_input;
+                                                                                     }});
                                                            add_span(box, 'clue-box-number',letter_index_label(ltr.letter_index));
                                                           }) });
                       add_span(elt, 'clue-text', word_data.clue);
@@ -166,65 +240,26 @@ function render_puzzle (puzzle_data) {
   const clue_inputs = [...container.querySelectorAll('.clue-box .letter-input')];
 
   for(const inp of grid_inputs) {
-    inp.addEventListener('keydown', e => handle_letter_input(e, grid_inputs, inp, inp._clue_input));
-    inp.addEventListener('focus', () => handle_focus(inp, inp._clue_input));
+    inp.addEventListener('keydown', e => handle_letter_input(e, grid_inputs, inp));
+    inp.addEventListener('focus', () => handle_selection_change(inp));
   };
+
+  for (const inp of source_inputs) {
+    inp.addEventListener('keydown', e => handle_letter_input(e, source_inputs, inp));
+    inp.addEventListener('focus', () => handle_selection_change(inp._inputs.grid));
+  }
 
   for (const inp of clue_inputs) {
-    inp.addEventListener('keydown', e => handle_letter_input(e, clue_inputs, inp, inp._grid_input));
-    inp.addEventListener('focus', () => handle_focus(inp._grid_input, inp))
+    inp.addEventListener('keydown', e => handle_letter_input(e, clue_inputs, inp));
+    inp.addEventListener('focus', () => handle_selection_change(inp._inputs.grid));
   };
+
+
+
 }
 
 
 
 
-function handle_letter_input (e, inputs, this_input, other_input) {
-  if (inputs[+this_input.dataset.index] !== this_input) debugger;
-  function move_by (offset) {
-    let pos = +this_input.dataset.index + offset;
-    if (pos < 0)  pos = inputs.length - 1;
-    if (pos >= inputs.length) pos = 0;
-    inputs[pos].focus();
-  }
-  function set_value (ch) {
-    this_input.value = ch;
-    other_input.value = ch;
-    const ans = this_input.dataset.answer;
-    console.log('set value', ch, ans);
-    if (ans !== other_input.answer) debugger;
-    this_input.classList.toggle('illegal', ch !== ans);
-    other_input.classList.toggle('illegal', ch !== ans);
-  }
-
-  if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-    e.preventDefault();
-    if (is_letter(e.key)) {
-      set_value(e.key.toUpperCase());
-      move_by(+1);
-    }
-    else if (e.key == ' ') { // delete and stay in place
-      set_value('');
-    }
-    else {} // Ignore.  Might want to beep or something.
-  } else if (e.key === 'Backspace' || e.key === 'Delete') {
-    e.preventDefault();
-    set_value('');
-    move_by(-1);
-  } else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
-    e.preventDefault();
-    move_by(-1);
-  } else if (e.key === 'ArrowRight' || (e.key === 'Tab' && !e.shiftKey)) {
-    e.preventDefault();
-    move_by(+1);
-  }
-}
-
-function handle_focus (grid_input, clue_input) {
-  const selected = document.querySelectorAll('.selected');
-  if (selected) selected.forEach((elt, i) => elt.classList.remove('selected'));
-  grid_input.closest('.grid-cell').classList.add('selected');
-  clue_input.classList.add('selected');
-}
 
 render_puzzle(init_puzzle_data(test_puzzle));
