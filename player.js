@@ -1,17 +1,43 @@
+// TODO: add panel to show quote source
+// TODO: add button for Show Illegal
+
+
+// TODO: make up/down arrow work in the grid
+// TODO: show which cell (in grid or in clues) is actually the focus, which determines motion.
+//    In fact, maybe should just show whole grid or whole clue area being selected, as it's
+//    not about the current cell, but what the next one will be.
+// TODO: option to show errors.
+
+
+
+let Show_Illegal = false; // user option
+
+
+
 const COLS = 20;
 
 document.documentElement.style.setProperty('--cols', COLS);
 
 document.addEventListener('keydown', e => {
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
-    const selected = document.querySelector('.grid-cell.selected');
-    if (selected) {
-      const input = selected.querySelector('input');
-      if (input && document.activeElement !== input) {
-        input.focus();
-        // don't need to set value here, the input's own keydown/input handlers will fire
+    const grid_cell = document.querySelector('.grid-cell.selected');
+    const grid_input = grid_cell?.querySelector('input');
+    const clue_input = document.querySelector('.clue-box input.selected');
+    if (grid_input && clue_input) {
+      if (document.activeElement !== grid_input && document.activeElement !== clue_input) {
+        // When user selects some random static text on the page, activeElements becomes the whole body.
+        // Ideally we'd remember which section user was in last so can return focus to it.  For now always
+        // just go to the grid.
+        e.preventDefault();
+        grid_input.focus();
+        // Now pass the key on to the grid.
+        grid_input.dispatchEvent(new KeyboardEvent('keydown', {
+          key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey, bubbles: true
+        }));
       }
     }
+    else // just a sanity check
+      if (grid_input || clue_input) debugger; /* should be both or none */
   }
 });
 
@@ -92,21 +118,22 @@ function init_puzzle_data (puzzle) {
 function render_puzzle (puzzle_data) {
   const grid = document.getElementById('quote-grid');
   grid.innerHTML = '';
-  for (const cell of puzzle_data.quote_cells)
-    if (cell.letter_index != null)
+  for (const cell_data of puzzle_data.quote_cells)
+    if (cell_data.letter_index != null)
       add_div(grid, 'grid-cell letter-cell',
-              el => { add_div(el, 'cell-id-row',
-                              elt => { add_span(elt, 'cell-id-left', letter_index_label(cell.letter_index));
-                                       add_span(elt, 'cell-id-right', word_index_label(cell.word_index))
-                                     });
-                      add_div(el, 'cell-input-container',
-                              elt => add_text_input(elt, 'letter-input', elt => { elt.dataset.index = cell.letter_index;
-                                                                                  elt._cell_data = cell; // is this used?
-                                                                                }));
-                    })
+              cell => { add_div(cell, 'cell-id-row',
+                                elt => { add_span(elt, 'cell-id-left', letter_index_label(cell_data.letter_index));
+                                         add_span(elt, 'cell-id-right', word_index_label(cell_data.word_index))
+                                       });
+                        add_div(cell, 'cell-input-container',
+                                elt => add_text_input(elt, 'letter-input', elt => { elt.dataset.index = cell_data.letter_index;
+                                                                                    elt.dataset.answer = cell_data.char;
+                                                                                    cell.addEventListener('click', () => elt.focus());
+                                                                                  }));
+                      })
 
     else
-      add_div(grid, 'grid-cell punct-cell', el => add_span(el, 'punct-cell-text', cell.char));
+      add_div(grid, 'grid-cell punct-cell', el => add_span(el, 'punct-cell-text', cell_data.char));
   const grid_inputs = [...grid.querySelectorAll('.cell-input-container .letter-input')];
 
   const container = document.getElementById('clues-container');
@@ -123,12 +150,15 @@ function render_puzzle (puzzle_data) {
              elt => { add_div(elt, 'clue-boxes',
                                elt => {for (const ltr of word_data.letters)
                                           add_div(elt, 'clue-box',
-                                                  elt => { add_text_input(elt, 'letter-input', elt => { elt.dataset.index = ltr.clue_index;
+                                                  box => { add_text_input(box, 'letter-input', elt => { elt.dataset.index = ltr.clue_index;
+                                                                                                        elt.dataset.answer = ltr.char;
                                                                                                         const grid_input = grid_inputs[ltr.letter_index];
                                                                                                         elt._grid_input = grid_input;
                                                                                                         grid_input._clue_input = elt;
+                                                                                                        // Any click in the box, focus on me!
+                                                                                                        box.addEventListener('click', () => elt.focus());
                                                                                                       });
-                                                           add_span(elt, 'clue-box-number',letter_index_label(ltr.letter_index));
+                                                           add_span(box, 'clue-box-number',letter_index_label(ltr.letter_index));
                                                           }) });
                       add_span(elt, 'clue-text', word_data.clue);
                     });
@@ -147,6 +177,8 @@ function render_puzzle (puzzle_data) {
 }
 
 
+
+
 function handle_letter_input (e, inputs, this_input, other_input) {
   if (inputs[+this_input.dataset.index] !== this_input) debugger;
   function move_by (offset) {
@@ -154,23 +186,30 @@ function handle_letter_input (e, inputs, this_input, other_input) {
     if (pos < 0)  pos = inputs.length - 1;
     if (pos >= inputs.length) pos = 0;
     inputs[pos].focus();
-    inputs[pos].select();
+  }
+  function set_value (ch) {
+    this_input.value = ch;
+    other_input.value = ch;
+    const ans = this_input.dataset.answer;
+    console.log('set value', ch, ans);
+    if (ans !== other_input.answer) debugger;
+    this_input.classList.toggle('illegal', ch !== ans);
+    other_input.classList.toggle('illegal', ch !== ans);
   }
 
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
     e.preventDefault();
     if (is_letter(e.key)) {
-      const ch = e.key.toUpperCase();
-      this_input.value = ch; other_input.value = ch;
+      set_value(e.key.toUpperCase());
       move_by(+1);
     }
     else if (e.key == ' ') { // delete and stay in place
-      this_input.value = ''; other_input.value = '';
+      set_value('');
     }
     else {} // Ignore.  Might want to beep or something.
   } else if (e.key === 'Backspace' || e.key === 'Delete') {
     e.preventDefault();
-    this_input.value = ''; other_input.value = '';
+    set_value('');
     move_by(-1);
   } else if (e.key === 'ArrowLeft' || (e.key === 'Tab' && e.shiftKey)) {
     e.preventDefault();
