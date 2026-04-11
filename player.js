@@ -161,18 +161,21 @@ function init_puzzle_data (puzzle) {
 //  words  { word[text], clue[text], letters }
 // letter { char, clue_index, letter_index} // or maybe cell.letter_index.
 
+function add_letter_input (parent, index, answer, container, init_fn) {
+  function init_input (inp) {
+    inp.dataset.index = index;
+    inp.dataset.answer = answer;
+    inp._inputs = {self: inp};
+    if (container)
+      container.addEventListener('click', () => inp.focus());
+    if (init_fn) init_fn(inp);
+  }
+  return add_text_input(parent, 'letter-input', init_input);
+}
+
 function render_puzzle (puzzle_data) {
 
-  function add_letter_input (parent, index, answer, container, init_fn) {
-    return add_text_input(parent, 'letter-input', elt => { elt.dataset.index = index;
-                                                           elt.dataset.answer = answer;
-                                                           elt._inputs = {self: elt};
-                                                           if (container)
-                                                             container.addEventListener('click', () => elt.focus());
-                                                           if (init_fn) init_fn(elt);
-                                                         });
-  }
-
+  /*********************  Grid ************************/
   const grid = document.getElementById('quote-grid');
   grid.innerHTML = '';
   for (const cell_data of puzzle_data.quote_cells)
@@ -189,30 +192,41 @@ function render_puzzle (puzzle_data) {
     else
       add_div(grid, 'grid-cell punct-cell', el => add_span(el, 'punct-cell-text', cell_data.char));
   const grid_inputs = [...grid.querySelectorAll('.cell-input-container .letter-input')];
+     
 
+  function add_clue_box (container, loc, index, ltr) {
+    function connect_input (new_inp) {
+      const grid_input = grid_inputs[ltr.letter_index];
+      new_inp._inputs.grid = grid_input;
+      grid_input._inputs[loc] = new_inp;
+      const other_loc = (loc === 'clue' ? 'source' : 'clue');
+      const other_input = grid_input._inputs[other_loc];
+      if (other_input) {
+        other_input._inputs[loc] = new_inp;
+        new_inp._inputs[other_loc] = other_input;
+      }
+    }
+    return add_div(container, 'clue-box',
+                   box => { add_letter_input(box, index, ltr.char, box, connect_input);
+                            add_span(box, 'clue-box-number', letter_index_label(ltr.letter_index));
+                        });
+  }
 
+  /*********************  Source  line ************************/
   const src_container = document.getElementById('source-container');
   src_container.innerHTML = '';
 
-  for (const word_data of puzzle_data.words) {
-    const initial = word_data.letters[0];
-    const box = add_div(src_container, 'source-box',
-                        box => { add_letter_input(box, word_data.word_index, initial.char, box,
-                                                  elt => { elt.classList.add('source-input');
-                                                           const grid_input = grid_inputs[initial.letter_index];
-                                                           elt._inputs.grid = grid_input;
-                                                           grid_input._inputs.source = elt;
-                                                         });
-                               });
-  }
-
+  puzzle_data.words.forEach((word_data, word_index) => {
+    const letter = word_data.letters[0];
+    add_clue_box(src_container, 'source', word_index, letter);
+  });
   const source_inputs = [...src_container.querySelectorAll('.letter-input')];
 
-
-  const container = document.getElementById('clues-container');
-  container.innerHTML = '';
-  const col1 = add_div(container, 'clues-column');
-  const col2 = add_div(container, 'clues-column');
+  /*********************  Clues ************************/
+  const clue_container = document.getElementById('clues-container');
+  clue_container.innerHTML = '';
+  const col1 = add_div(clue_container, 'clues-column');
+  const col2 = add_div(clue_container, 'clues-column');
 
   const split = Math.ceil(puzzle_data.words.length / 2);
 
@@ -220,24 +234,13 @@ function render_puzzle (puzzle_data) {
     const row = add_div(word_index < split ? col1 : col2, 'clue-row');
     add_span(row, 'clue-label', word_index_label(word_index));
     add_div(row, 'clue-content',
-             elt => { add_div(elt, 'clue-boxes',
-                               elt => {for (const ltr of word_data.letters)
-                                          add_div(elt, 'clue-box',
-                                                  box => { add_letter_input(box, ltr.clue_index, ltr.char, box,
-                                                                            elt => { const grid_input = grid_inputs[ltr.letter_index];
-                                                                                     grid_input._inputs.clue = elt;
-                                                                                     elt._inputs.grid = grid_input;
-                                                                                     const source_input = grid_input._inputs.source;
-                                                                                     if (source_input) {
-                                                                                       source_input._inputs.clue = elt;
-                                                                                       elt._inputs.source = source_input;
-                                                                                     }});
-                                                           add_span(box, 'clue-box-number',letter_index_label(ltr.letter_index));
-                                                          }) });
-                      add_span(elt, 'clue-text', word_data.clue);
-                    });
+            elt => add_div(elt, 'clue-boxes',
+                           elt => { for (const letter of word_data.letters) add_clue_box(elt, 'clue', letter.letter_index, letter) }));
   });
-  const clue_inputs = [...container.querySelectorAll('.clue-box .letter-input')];
+  const clue_inputs = [...clue_container.querySelectorAll('.clue-box .letter-input')];
+
+
+  /*********************  Event handling ************************/
 
   for(const inp of grid_inputs) {
     inp.addEventListener('keydown', e => handle_letter_input(e, grid_inputs, inp));
@@ -253,9 +256,6 @@ function render_puzzle (puzzle_data) {
     inp.addEventListener('keydown', e => handle_letter_input(e, clue_inputs, inp));
     inp.addEventListener('focus', () => handle_selection_change(inp._inputs.grid));
   };
-
-
-
 }
 
 
