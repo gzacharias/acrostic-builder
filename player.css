@@ -9,6 +9,7 @@
     --clue-box-size: 25px;
     --clue-input-font-size: 18px;
     --clue-text-font-size: 18px;
+    --input-focus-background: #CDDEFF;
 }
 
 body {
@@ -72,6 +73,10 @@ body {
     z-index: 1;
 }
 
+.grid-cell:focus-within {
+    background: var(--input-focus-background);
+}
+
 .punct-cell {
     background: black;
     align-items: center;
@@ -102,9 +107,6 @@ body {
     height: 100%;
 }
 
-.cell-input input:focus {
-    background: #e8f0fc;
-}
 
 /* --------------------------- Source & Clues  --------------------------- */
 /* --------------------------- Source  --------------------------- */
@@ -172,10 +174,14 @@ body {
     height: var(--clue-box-size);
 }
 
-.clue-box input.selected {
+.clue-box .letter-input.selected {
     outline: 3px solid blue;
     outline-offset: 0;
     z-index: 1;
+}
+
+.clue-box .letter-input:focus {
+    background: var(--input-focus-background);
 }
 
 .clue-text {
@@ -184,4 +190,4 @@ body {
     font-family: serif;
     color: black; 
 }
-a
+
