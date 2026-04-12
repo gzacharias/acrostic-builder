@@ -232,19 +232,18 @@ function update_error_markup () {
 
 // --------------------- Clue Mode -----------------------------------------------------------
 
+// This preserves clues for words that have been changed, in case they come back during editing.
 let clues_table = {}; // maps full word to clue.  gets rebuild when load a puzzle, hence the LET
 function save_clues_from_ui () {
   for (const row of all_word_rows()) {
-    clue = clue_input_text(row);
-    if (clue) clues_table[clue_label_text(row)] = clue;
+    clues_table[full_word_text(row)] = clue_input_text(row);
   }
 }
-function fetch_saved_clue (row) { return clues_table[clue_label_text(row)] ?? '' }
-
 
 function toggle_clue_mode () {
   if (clue_mode) {
     // Save clues from UI before switching, because now will mess around and recreate all the rows.
+    // Perhaps should save these somewhere in the DOM, e.g words_container
     save_clues_from_ui();
     // Unfreeze quotation and source.  Since everything was frozen, no need to update anything.
     quotation_elt.contentEditable = 'true';
@@ -258,7 +257,7 @@ function toggle_clue_mode () {
     const indent =  (Math.max(...rows.map(row => word_input_text(row).length)) + 2) + 'ch';
     for (const row of all_word_rows()) {
       ensure_clue_part(row);
-      clue_input_elt(row).textContent = fetch_saved_clue(row);
+      clue_input_elt(row).textContent = clues_table[full_word_text(row)] ?? '';
       clue_label_elt(row).style.width = indent;
     }
     suggest_clues();
@@ -369,13 +368,14 @@ function receive_clue_suggestions(data) {
 
 // --------------------- Buttons -----------------------------------------------------------
 
-///  Save
+///  Save puzzle
 function get_puzzle_data() {
   if (clue_mode) save_clues_from_ui();
   return {
+    format: 1,
     quotation: quotation_elt.textContent,
     source: source_text(),
-    words: all_word_rows().map(word_input_text),
+    words: all_word_rows().map(full_word_text),
     clues: clues_table
   };
 }
@@ -405,8 +405,10 @@ function load_puzzle_data(data) {
   const rows = all_word_rows();
   if (data.words.length !== rows.length)
     alert(`Bad file: expected ${rows.length} words, got ${data.words.length}`);
+  else if (data.format == 1) 
+    data.words.forEach((val, i) => { word_input_elt(rows[i]).textContent = val.slice(1); });
   else
-    data.words.forEach((val, i) => { word_input_elt(rows[i]).textContent = val; });
+    alert(`Unsupposed file format version ${data.format}`);
   update_letters();
 }
 
