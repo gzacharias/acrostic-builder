@@ -48,7 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, WKUIDelegate, WKNavigationDe
         window.contentView!.addSubview(webView)
 
                 
-        let url = Bundle.main.url(forResource: "acrostics", withExtension: "html")!
+        let url = Bundle.main.url(forResource: "builder", withExtension: "html")!
         webView.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
         window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)
