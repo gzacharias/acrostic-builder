@@ -2,6 +2,7 @@
 // TODO: add panel to show quote source
 // TODO: add button for Show Illegal
 //  TODO: in builder, provide support for a source hint, would be like "Author only"
+// TODO: make the active cell slightly different from the other selected cells.
 
 
 // TODO: tooltips.
@@ -40,7 +41,14 @@ document.addEventListener('keydown', e => {
     }};
 });
 
+// just here so can add debugging statements when needed
+function change_focus (inp) {
+  inp.focus();
+}
+
 function handle_letter_input (e, inputs, this_input) {
+  // so really don't need to pass this_input in...
+  if (this_input !== document.activeElement) debugger;
   if (inputs[+this_input.dataset.index] !== this_input) debugger;
   function move_by (offset) {
     let pos = +this_input.dataset.index + offset;
@@ -99,14 +107,33 @@ function handle_selection_change (grid_input) {
 // For now, word assignments are synthesized by cycling.
 // Right now, we save words which are missing the initial letter, and the clues
 
+// Taken from puzzlebaron, only for testing.
 const test_puzzle = {
-  quote: "What thou lovest well remains, The rest is dross.",
-  source: "Ezra Pound, The Pisan Cantos",
-  words: [["WHATWELL", "Not who or when"],
-          ["THOUTHE", "foo fie fum"],
-          ["ISLOVE", "another"],
-          ["RESTST", "fie"],
-          ["REDRMAINOSSS", "can't imagine any better"]]
+  format: 1,
+  quote: "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
+  source: "Albert Camus",
+  words:["ASTHECROW",
+         "LABOHEME",
+         "BOTANIST",
+         "EPICPOET",
+         "ROPESOFF",
+         "TIEDTO",
+         "CHANNELED",
+         "ABOLISHED",
+         "MAGNITUDES",
+         "UNIDENTIFIED",
+         "SADDENING"],
+  clues: {"ASTHECROW": "___ flies",
+          "LABOHEME": "Inspiration for Rent",
+          "BOTANIST": "Plant studier",
+          "EPICPOET": "Homer or Dante",
+          "ROPESOFF": "Secures, as a crime scene",
+          "TIEDTO": "Connected with",
+          "CHANNELED": "Did a psychic's job, maybe",
+          "ABOLISHED": "Put an end to",
+          "MAGNITUDES": "Extents",
+          "UNIDENTIFIED": "Part of U.F.O.",
+          "SADDENING": "Depressing"}
 };
 
 function report_bad_puzzle (message) {
@@ -142,11 +169,10 @@ function init_puzzle_data (puzzle) {
   }
 
   let clue_index = 0;
-  const words = puzzle.words.map((arr, word_index) => {
-    const word = arr[0].toUpperCase();
-    const clue = arr[1];
+  const words = puzzle.words.map((word, word_index) => {
+    if (word != word.toUpperCase()) debugger;
     return { word: word,
-             clue: clue,
+             clue: puzzle.clues[word],
              letters: [...word].map(ch => {
                const cell = available_cells[ch].pop(); // claim this cell
                cell.word_index = word_index;
@@ -167,7 +193,7 @@ function add_letter_input (parent, index, answer, container, init_fn) {
     inp.dataset.answer = answer;
     inp._inputs = {self: inp};
     if (container)
-      container.addEventListener('click', () => inp.focus());
+      container.addEventListener('click', () => change_focus(inp));
     if (init_fn) init_fn(inp);
   }
   return add_text_input(parent, 'letter-input', init_input);
@@ -187,7 +213,7 @@ function render_puzzle (puzzle_data) {
                                        });
                         add_div(cell, 'cell-input-container',
                                 elt => add_letter_input(elt, cell_data.letter_index, cell_data.char, cell));
-                      })
+                      });
 
     else
       add_div(grid, 'grid-cell punct-cell', el => add_span(el, 'punct-cell-text', cell_data.char));
@@ -234,8 +260,10 @@ function render_puzzle (puzzle_data) {
     const row = add_div(word_index < split ? col1 : col2, 'clue-row');
     add_span(row, 'clue-label', word_index_label(word_index));
     add_div(row, 'clue-content',
-            elt => add_div(elt, 'clue-boxes',
-                           elt => { for (const letter of word_data.letters) add_clue_box(elt, 'clue', letter.letter_index, letter) }));
+            elt => { add_div(elt, 'clue-boxes',
+                             elt => { for (const letter of word_data.letters) add_clue_box(elt, 'clue', letter.clue_index, letter) });
+                     add_span(elt, 'clue-text', word_data.clue);
+                   });
   });
   const clue_inputs = [...clue_container.querySelectorAll('.clue-box .letter-input')];
 
