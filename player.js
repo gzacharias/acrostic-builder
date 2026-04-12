@@ -37,8 +37,8 @@ function change_focus (inp) {
 
 function handle_letter_input (e, inputs, this_input) {
   // so really don't need to pass this_input in...
-  if (this_input !== document.activeElement) debugger;
-  if (inputs[+this_input.dataset.index] !== this_input) debugger;
+  if (this_input !== document.activeElement) bug();
+  if (inputs[+this_input.dataset.index] !== this_input) bug();
   function move_by (offset) {
     let pos = +this_input.dataset.index + offset;
     if (pos < 0)  pos = inputs.length - 1;
@@ -98,31 +98,31 @@ function handle_selection_change (grid_input) {
 
 // Taken from puzzlebaron, only for testing.
 const test_puzzle = {
-  format: 1,
-  quote: "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
-  source: "Albert Camus",
-  words:["ASTHECROW",
-         "LABOHEME",
-         "BOTANIST",
-         "EPICPOET",
-         "ROPESOFF",
-         "TIEDTO",
-         "CHANNELED",
-         "ABOLISHED",
-         "MAGNITUDES",
-         "UNIDENTIFIED",
-         "SADDENING"],
-  clues: {"ASTHECROW": "___ flies",
-          "LABOHEME": "Inspiration for Rent",
-          "BOTANIST": "Plant studier",
-          "EPICPOET": "Homer or Dante",
-          "ROPESOFF": "Secures, as a crime scene",
-          "TIEDTO": "Connected with",
-          "CHANNELED": "Did a psychic's job, maybe",
-          "ABOLISHED": "Put an end to",
-          "MAGNITUDES": "Extents",
-          "UNIDENTIFIED": "Part of U.F.O.",
-          "SADDENING": "Depressing"}
+  "format": 1,
+  "quote": "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
+  "source": "Albert Camus",
+  "words":["As the crow",
+           "La Boheme",
+           "Botanist",
+           "Epic poet",
+           "Ropes-off",
+           "Tied-to",
+           "Channeled",
+           "Abolished",
+           "Magnitudes",
+           "Unidentified",
+           "Saddening"],
+  "clues": {"ASTHECROW": "___ flies",
+            "LABOHEME": "Inspiration for Rent",
+            "BOTANIST": "Plant studier",
+            "EPICPOET": "Homer or Dante",
+            "ROPESOFF": "Secures, as a crime scene",
+            "TIEDTO": "Connected with",
+            "CHANNELED": "Did a psychic's job, maybe",
+            "ABOLISHED": "Put an end to",
+            "MAGNITUDES": "Extents",
+            "UNIDENTIFIED": "Part of U.F.O.",
+            "SADDENING": "Depressing"}
 };
 
 function report_bad_puzzle (message) {
@@ -159,10 +159,9 @@ function init_puzzle_data (puzzle) {
 
   let clue_index = 0;
   const words = puzzle.words.map((word, word_index) => {
-    if (word != word.toUpperCase()) debugger;
     return { word: word,
              clue: puzzle.clues[word],
-             letters: [...word].map(ch => {
+             letters: [...letters_of(word)].map(ch => {
                const cell = available_cells[ch].pop(); // claim this cell
                cell.word_index = word_index;
                cell.clue_index = clue_index;
@@ -171,7 +170,6 @@ function init_puzzle_data (puzzle) {
   });
   return { quote_cells,  words}
 }
-
 //  cells  { char, letter_index, word_index, clue_index }
 //  words  { word[text], clue[text], letters }
 // letter { char, clue_index, letter_index} // or maybe cell.letter_index.

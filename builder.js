@@ -22,13 +22,12 @@ function word_initial_elt (row) { return row.querySelector('.word-letter') }
 function word_initial (row) { return row.querySelector('.word-letter').textContent }
 function word_input_elt (row) { return row.querySelector('.word-input') }
 function word_input_text (row) { return row.querySelector('.word-input').textContent }
-function full_word_text (row) { return word_initial(row) + word_input_text(row) }
+function word_text (row) { return word_initial(row) + word_input_text(row) }
 function clue_label_elt (row) { return row.querySelector('.clue-label') }
 function clue_label_text (row) {return row.querySelector('.clue-label').textContent }
 function clue_input_elt (row) { return row.querySelector('.clue-input') }
 function clue_input_text (row) { return row.querySelector('.clue-input').textContent }
 
-function map_to_str (things, fn) { return [...things].map(fn).join(''); }
 
 function get_cursor_pos(elt) {
   const sel = window.getSelection();
@@ -73,14 +72,19 @@ function set_input_html (elt, html) {
 
 function clean_word_input (input) {
   const raw = input.textContent;
-  const filtered = letters_of(raw);
+  const cursor_pos = get_cursor_pos(input);
+  // Spaces seem to all be non-breaking spaces
+  function filter_str (str) {
+    return [...str].filter(ch => is_letter(ch) || ch === '-' || ch === ' ' || ch == '\u00A0').join('');
+  }
+  const filtered = filter_str(raw)
   if (filtered !== raw) {
-    if (filtered.length !== raw.length) beep(); // means going to ignore something.
-    const pos = get_cursor_pos(input);
-    // Count how many letters precede the cursor in the original text
-    const prefix = [...raw.slice(0, pos ?? raw.length)].filter(is_letter).length;
+    const len = filtered.length;
+    if (len >= raw.length) bug(); // all we do is remove stuff
+    beep(); // we're going to ignore something they just typed
+    const new_pos = (cursor_pos === null) ? len : filter_str(raw.slice(0, cursor_pos)).length;
     input.textContent = filtered;
-    set_cursor_pos(input, prefix);
+    set_cursor_pos(input, new_pos);
   }
 }
   
@@ -100,7 +104,7 @@ function word_navigation_handler(e, input_getter) {
 
 
 function make_word_row (index, ch, html) {
-  if (clue_mode) debugger;
+  if (clue_mode) bug();
   const row = document.createElement('div');
   row.className = 'word-row';
 
@@ -132,15 +136,15 @@ function ensure_clue_part (row) {
                    });
   }
   // Only need to call this when switching to clue mode.  Once in clue mode, the words don't change.
-  const full_word = full_word_text(row);
-  clue_label_elt(row).textContent = full_word + ":";
-  clue_input_elt(row).setAttribute('placeholder', `enter clue for ${full_word}…`);
+  const word = word_text(row);
+  clue_label_elt(row).textContent = word + ":";
+  clue_input_elt(row).setAttribute('placeholder', `enter clue for ${word}…`);
 }
 
 
 function unused_letters() {
   const used = {};
-  for (const ch of letters_of(source_text()) + map_to_str(all_word_rows(), word_input_text))
+  for (const ch of letters_of(map_to_str(all_word_rows(), word_text)))
     used[ch] = (used[ch] ?? 0) + 1;
 
   const unused = [];
@@ -151,7 +155,7 @@ function unused_letters() {
 }
 
 function update_letters () {
-  if (clue_mode) debugger;
+  if (clue_mode) bug();
   unused_letters_elt.textContent = unused_letters().match(/(.)\1*/g)?.join(' ') ?? '';
   update_error_markup();
   clue_btn.disabled = !clue_mode && !!(all_word_rows().length == 0 || // hasn't started yet.
@@ -162,7 +166,7 @@ function update_letters () {
 }
 
 function rebuild_words() {
-  if (clue_mode) debugger;
+  if (clue_mode) bug();
   const new_source = source_text();
   if (!new_source) {
     words_container.innerHTML = '';
@@ -175,10 +179,10 @@ function rebuild_words() {
   if (new_initials === map_to_str(existing_words, word_initial))
     return;
   const existing_map = {};
-  for (const word of existing_words) {
-    const ch = word_initial(word);
+  for (const word_row of existing_words) {
+    const ch = word_initial(word_row);
     if (!existing_map[ch]) existing_map[ch] = [];
-    existing_map[ch].push(word_input_text(word));
+    existing_map[ch].push(word_input_text(word_row));
   }
 
   words_container.innerHTML = '';
@@ -222,8 +226,8 @@ function update_error_markup () {
 
   for (const word of all_word_rows()) {
     word_initial_elt(word).classList.toggle('illegal', source_states.shift());
-    const word_html = map_to_str(word_input_text(word), ch => char_html(ch) ?? ch);
-    set_input_html(word_input_elt(word), word_html);
+    const html = map_to_str(word_input_text(word), ch => char_html(ch) ?? ch);
+    set_input_html(word_input_elt(word), html);
   }
 
   // Do this last so it doesn't disturb the cursor in any word input.
@@ -236,7 +240,7 @@ function update_error_markup () {
 let clues_table = {}; // maps full word to clue.  gets rebuild when load a puzzle, hence the LET
 function save_clues_from_ui () {
   for (const row of all_word_rows()) {
-    clues_table[full_word_text(row)] = clue_input_text(row);
+    clues_table[letters_of(word_text(row))] = clue_input_text(row);
   }
 }
 
@@ -257,7 +261,7 @@ function toggle_clue_mode () {
     const indent =  (Math.max(...rows.map(row => word_input_text(row).length)) + 2) + 'ch';
     for (const row of all_word_rows()) {
       ensure_clue_part(row);
-      clue_input_elt(row).textContent = clues_table[full_word_text(row)] ?? '';
+      clue_input_elt(row).textContent = clues_table[letters_of(word_text(row))] ?? '';
       clue_label_elt(row).style.width = indent;
     }
     suggest_clues();
@@ -351,7 +355,7 @@ async function suggest_clues() {
                `Reply with corresponding clues, one per line, in the same order, nothing else. ` +
                `Your answer must have exactly ${n} lines, no intro, no summary. ` +
                "Don't ask questions, if you don't understand something, just do your best. ",
-               no_clues.map(full_word_text).join('\n')+'\n');
+               no_clues.map(word_text).join('\n')+'\n');
 }
 
 
@@ -360,7 +364,7 @@ function receive_clue_suggestions(data) {
   if (!data) { console.log('Error getting clue suggestions'); return; }
   const clues = data.content[0].text.split('\n');
   const no_clues = all_word_rows().filter(row => !clue_input_text(row));
-  if (clues.length !== no_clues.length) { console.log("Mismatched answer from claude"); debugger; }
+  if (clues.length !== no_clues.length) { bug("Mismatched answer from claude"); }
   else for (let i = 0; i < clues.length; i++) clue_input_elt(no_clues[i]).textContent = clues[i];
 }
 
@@ -375,7 +379,7 @@ function get_puzzle_data() {
     format: 1,
     quotation: quotation_elt.textContent,
     source: source_text(),
-    words: all_word_rows().map(full_word_text),
+    words: all_word_rows().map(word_text),
     clues: clues_table
   };
 }
@@ -408,7 +412,7 @@ function load_puzzle_data(data) {
   else if (data.format == 1) 
     data.words.forEach((val, i) => { word_input_elt(rows[i]).textContent = val.slice(1); });
   else
-    alert(`Unsupposed file format version ${data.format}`);
+    alert(`Unsupported file format version ${data.format}`);
   update_letters();
 }
 
