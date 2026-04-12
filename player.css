@@ -131,6 +131,10 @@ body {
     flex-direction: column;
     gap: 0.75em;
 }
+.source-label {
+    align-self: center; /* flex-start, flex-end */
+    margin-right: 1rem;
+}
 .clue-row {
     display: flex;
     align-items: flex-start;

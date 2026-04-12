@@ -1,26 +1,15 @@
-// TODO: save in reasonable format
-// TODO: add panel to show quote source
 // TODO: add button for Show Illegal
-//  TODO: in builder, provide support for a source hint, would be like "Author only"
-// TODO: make the active cell slightly different from the other selected cells.
-
-
+// TODO: in builder, provide support for a source label, would be like "Author only", and add it here.
+// TODO: in edit mode, words must allow spaces and punctuation, which will get ignored.
 // TODO: tooltips.
 // TODO: make up/down arrow work in the grid
-// TODO: show which cell (in grid or in clues) is actually the focus, which determines motion.
-//    In fact, maybe should just show whole grid or whole clue area being selected, as it's
-//    not about the current cell, but what the next one will be.
-// TODO: option to show errors.
-
+// TODO: way to control Show_Illegal
+// TODO: should resize as window changes.
 
 
 let Show_Illegal = false; // user option
 
-
-
 const COLS = 20;
-
-document.documentElement.style.setProperty('--cols', COLS);
 
 document.addEventListener('keydown', e => {
   if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
@@ -201,6 +190,8 @@ function add_letter_input (parent, index, answer, container, init_fn) {
 
 function render_puzzle (puzzle_data) {
 
+  document.documentElement.style.setProperty('--cols', COLS);
+
   /*********************  Grid ************************/
   const grid = document.getElementById('quote-grid');
   grid.innerHTML = '';
@@ -241,6 +232,8 @@ function render_puzzle (puzzle_data) {
   /*********************  Source  line ************************/
   const src_container = document.getElementById('source-container');
   src_container.innerHTML = '';
+
+  add_span(src_container, 'source-label', "Source:");
 
   puzzle_data.words.forEach((word_data, word_index) => {
     const letter = word_data.letters[0];
