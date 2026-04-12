@@ -1,12 +1,27 @@
 // Is there really no predefined way to do something like this??
 const audio_ctx = new AudioContext();
-function beep() {
-  const osc = audio_ctx.createOscillator();
-  osc.connect(audio_ctx.destination);
-  osc.frequency.value = 440;
-  osc.start();
-  osc.stop(audio_ctx.currentTime + 0.1);
+const beep_gain = audio_ctx.createGain();
+{ beep_gain.connect(audio_ctx.destination);
+  beep_gain.gain.value = 0;
+  const beep_osc = audio_ctx.createOscillator();
+  beep_osc.frequency.value = 880;
+  beep_osc.connect(beep_gain);
+  beep_osc.start();
 }
+
+function beep() {
+  beep_gain.gain.cancelScheduledValues(audio_ctx.currentTime);
+  beep_gain.gain.setValueAtTime(0.1, audio_ctx.currentTime);
+  beep_gain.gain.setValueAtTime(0, audio_ctx.currentTime + 0.05);
+}
+
+function bug (msg) {
+  if (msg) console.log(msg);
+  // alert('bug: '+msg);
+  debugger; // this doesn't seem to be working!
+}
+
+function map_to_str (things, fn) { return [...things].map(fn).join(''); }
 
 function is_letter(ch) {
   return /\p{L}/u.test(ch);
