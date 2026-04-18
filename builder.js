@@ -471,6 +471,7 @@ function update_from_autosave() {
   // the case if the autsave came from edit mode.
   if (Puzzle.clue_mode &&
       (quotation_elt.textContent !== data.quotation || words_are_new ||
+       current_rows.length !== data.clues.length ||
        current_rows.some((row, i) => clue_label(row) !== data.clues[i][0])))
     toggle_clue_mode();
 
