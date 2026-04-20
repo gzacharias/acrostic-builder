@@ -1,8 +1,62 @@
-// just for debugging
+////// just for debugging
 function show_storage () {
   for (let i = 0; i < localStorage.length; i++) {
     console.log(localStorage.key(i), localStorage.getItem(localStorage.key(i)));
   }
+}
+
+function show_gist () {
+}
+//////
+
+
+async function decrypt_key(encrypted_key) {
+  let passphrase = localStorage.getItem('acrostic.passphrase');
+  if (!passphrase) {
+    passphrase = prompt('Enter password:');
+    if (!passphrase) return null;
+  }
+  const key = await decrypt_key_with_passphrase(encrypted_key, passphrase);
+  if (!key) {
+    localStorage.removeItem('acrostic.passphrase');
+    alert('Wrong passphrase');
+    return null;
+  }
+  localStorage.setItem('acrostic.passphrase', passphrase);
+  return key;
+}
+
+async function decrypt_key_with_passphrase(encrypted_key, passphrase) {
+  try {
+    const enc = new TextEncoder();
+    const from_b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+    const key_material = await crypto.subtle.importKey(
+      'raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: from_b64(encrypted_key.salt), iterations: 100000, hash: 'SHA-256' },
+      key_material, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: from_b64(encrypted_key.iv) },
+      key, from_b64(encrypted_key.data));
+    return new TextDecoder().decode(decrypted);
+  } catch {
+    return null; // wrong passphrase
+  }
+}
+
+async function do_fetch (url, method, headers, content) {
+  let response;
+  try {
+    if (content !== undefined) headers['Content-Type'] = 'application/json';
+    response = await fetch(url, {method: method, headers: headers, body: JSON.stringify(content)});
+  } catch (e) {
+    throw new Error(`${url} Network error: ${e.message}`);
+  }
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(`${url} error ${response.status}: ${body.message ?? 'unknown'}`);
+  }
+  return response.json();
 }
 
 // Is there really no predefined way to do something like this??
@@ -37,10 +91,7 @@ function is_letter(ch) {
 }
 
 function letters_of (bag_of_chars) {
-  if (bag_of_chars == null) {
-    console.log("bad call to letters_of");
-    debugger;
-  }
+  if (bag_of_chars == null) bug("bad call to letters_of");
   return [...bag_of_chars].filter(is_letter).join('').toUpperCase();
 }
 
