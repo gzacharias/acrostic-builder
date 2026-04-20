@@ -68,7 +68,7 @@ async function select_puzzle_dialog () {
     const overlay = document.createElement('div');
     overlay.className = 'dialog-overlay';
     add_div(overlay, 'load-dialog', d => {
-      add_div(d, 'dialog-title', t => t.textContent = 'Load Puzzle');
+      add_div(d, 'dialog-title', t => t.textContent = 'Select puzzle to load');
       const list = add_div(d, 'puzzle-list');
       for (const [name, file_data] of puzzle_files) {
         add_div(list, 'puzzle-item', item => {
@@ -83,7 +83,7 @@ async function select_puzzle_dialog () {
           });
         });
       }
-      add_div(d, 'dialog-cancel', btn => {
+      add_elt(d, 'button', btn => {
         btn.textContent = 'Cancel';
         btn.addEventListener('click', () => {
           document.body.removeChild(overlay);

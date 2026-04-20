@@ -122,7 +122,6 @@ label {
 .word-row {
     display: flex;
     align-items: center;
-    /* border: 1px solid lightgray; */
     padding: 2px 0;
     border-radius: 4px;
 }
@@ -202,9 +201,10 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background: #4c4c4c;
-    border-color: #777;
+button:not(:disabled):hover {
+    box-shadow: inset 0 0 0 3px var(--text-focus-border);
+    background: #d4d4d4;
+    color: black;
 }
 
 
@@ -213,10 +213,8 @@ button:disabled {
     cursor: default;
 }
 
-button:disabled:hover {
-    background: var(--button-color);
-    border-color: var(--button-border-color);
-}
+
+/************************* overlays  ***********************/
 
 #thinking-overlay {
     position: absolute;
@@ -231,4 +229,69 @@ button:disabled:hover {
     border-radius: 6px;
     border: 1px solid #777;
     z-index: 1000;
+}
+
+.dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.load-dialog {
+    background: white;
+    color: black;
+    font-family: monospace;
+    font-size: 15px;
+    border: 1px solid #3c3c3c;
+    border-radius: 6px;
+    padding: 24px;
+    min-width: 300px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.dialog-title {
+    font-weight: bold;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+}
+
+.puzzle-list {
+    border: 1px solid #3c3c3c;
+    border-radius: 4px;
+    padding: 4px;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.puzzle-item {
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+    border: 1px solid transparent;
+}
+
+.puzzle-item:hover {
+    background: #e8e9d0;
+    border: 1px solid #3c3c3c;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.dialog-cancel:hover {
+    background: #4c4c4c;
+    border-color: #777;
 }
