@@ -104,7 +104,11 @@ function make_word_row (index, ch, html) {
           word_part => { word_part.style.flex = '1';
                          add_span(word_part, 'word-letter', ch);
                          add_div(word_part,  'word-input editable',
-                                 inp => { inp.style.flex = '1';
+                                 inp => { inp.spellcheck = false;
+                                          inp.setAttribute('autocomplete', 'off');
+                                          inp.setAttribute('autocorrect', 'off');
+                                          inp.setAttribute('autocapitalize', 'off');
+                                          inp.style.flex = '1';
                                           inp.contentEditable = 'true';
                                           inp.dataset.index = index;
                                           inp.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
