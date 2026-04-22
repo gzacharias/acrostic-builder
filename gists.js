@@ -47,35 +47,35 @@ async function get_gist_url () {
 }
 
 async function store_puzzle(name, puzzle_data) {
-  await gist_fetch(await get_gist_url(), 'PATCH', 
-                   { files: { [name]: { content: JSON.stringify(puzzle_data) } } });
+  const content = JSON.stringify(puzzle_data);
+  await gist_fetch(await get_gist_url(), 'PATCH', { files: { [name]: { content: content } } });
+  return content;
 }
 
 
 // Sigh, this loads the whole gist.  If this becomes a problem, could store a list of puzzles in .keep...
-async function puzzle_exists (name) {
+async function load_puzzle (name) {
   const data = await gist_fetch(await get_gist_url(), 'GET');
-  return data.files[name] != null
+  return data.files[name] && data.files[name].content;
 }
-
 
 async function select_puzzle_dialog () {
   const data = await gist_fetch(await get_gist_url(), 'GET');
   // TODO: change to puzzle files having a prefix or suffix, rather than enumerating
   // all files that are NOT puzzles.
-  const puzzle_files = Object.entries(data.files).filter(([name, content]) => name !== '.keep');
+  const puzzle_files = Object.values(data.files).filter(file => file.filename !== '.keep');
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'dialog-overlay';
     add_div(overlay, 'load-dialog', d => {
       add_div(d, 'dialog-title', t => t.textContent = 'Select puzzle to load');
       const list = add_div(d, 'puzzle-list');
-      for (const [name, file_data] of puzzle_files) {
+      for (const file of puzzle_files) {
         add_div(list, 'puzzle-item', item => {
-          item.textContent = name;
+          item.textContent = file.filename;
           item.addEventListener('click', () => {
             document.body.removeChild(overlay);
-            resolve({name: name, content: JSON.parse(file_data.content)});
+            resolve(file);
           });
           item.addEventListener('contextmenu', e => {
             e.preventDefault();

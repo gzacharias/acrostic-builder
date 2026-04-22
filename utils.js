@@ -4,8 +4,26 @@ function show_storage () {
     console.log(localStorage.key(i), localStorage.getItem(localStorage.key(i)));
   }
 }
-
-function show_gist () {
+/*
+async function fix_gist () {
+  // note content has content.filename, is it always same as they key in the directory?
+  const data = await gist_fetch(await get_gist_url(), 'GET');
+  Object.values(data.files).forEach(file => {
+    if (file.filename !== '.keep') {
+      const data = read_data(file.content);
+      if (data.uuid === 'null') {
+        console.log (`fixing ${name}`);
+        data.uuid = crypto.randomUUID();
+        store_puzzle(file.filename, data);
+      }}
+  });
+  show_gist();
+}
+*/
+async function show_gist () {
+  const url = await get_gist_url();
+  const data = await gist_fetch(url, 'GET');
+  Object.entries(data.files).forEach(([name, info]) => { console.log(name, info); });
 }
 //////
 
@@ -78,10 +96,10 @@ function beep() {
 
 // TODO: set up global error handling so this can abort
 function bug (msg) {
-  if (msg) console.log(msg);
+  console.log(msg || 'bug');
   debugger;  // this often doesn't work in safari
   const err = new Error().stack;
-  console.log(err.stack); 
+  console.log(err); 
 }
 
 function map_to_str (things, fn) { return [...things].map(fn).join(''); }
@@ -156,7 +174,7 @@ function set_selection(data) {
   function walk(node) {
     if (node.nodeType === 3) {
       const node_len = node.textContent.length;
-      if (!start_set && start - pos < node_len) {
+      if (!start_set && start - pos <= node_len) {
         range.setStart(node, start - pos);
         start_set = true;
       }
@@ -192,4 +210,15 @@ function set_input_markup (elt, html) {
 function set_input_text (elt, str) {
   // Don't clobber selection if don't have to..
   if (elt.textContent !== str) elt.textContent = str;
+}
+
+function show_overlay(text) {
+  const overlay = document.getElementById('thinking-overlay');
+  overlay.textContent = text;
+  overlay.style.display = 'block';
+}
+
+function hide_overlay () {
+  const overlay = document.getElementById('thinking-overlay');
+  overlay.style.display = 'none';
 }

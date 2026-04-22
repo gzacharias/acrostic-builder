@@ -2,7 +2,7 @@
 // TODO switch to setAttribute('placeholder') for word_container
 // TODO: in ok_to__discard, don't confirm if no changes since last save.
 // TODO: Removme save/load handlers in XCode
-// TODO: Check if file changed since last save/load.  Maybe have a puzzle.change_count
+
 
 
 const puzzle_name_elt = document.getElementById('puzzle-name');
@@ -18,14 +18,13 @@ const load_btn      = document.getElementById('load-btn');
 const Puzzle = { clue_mode: false,
                  saved_clues: [], // null when in clue mode, array in edit mode
                  persistent_name: null, // last saved/loaded name
+                 persistent_save: null, // last saved/loaded data
                  last_autosave: null,
                  username: null,
                  uuid: null,
                };
 
 function puzzle_name () { return puzzle_name_elt.value.trim(); }
-
-function puzzle_is_empty () { return quote_text() === '' && source_text() === '' }
 
 function source_text () { return source_elt.textContent; }
 function quote_text () { return quotation_elt.textContent; }
@@ -41,6 +40,7 @@ function clue_label_text (row) {return row.querySelector('.clue-label').textCont
 function clue_input_elt (row) { return row.querySelector('.clue-input') }
 function clue_input_text (row) { return row.querySelector('.clue-input').textContent }
 
+puzzle_name_elt.addEventListener('input', name_changed);
 quotation_elt.addEventListener('input', quote_changed);
 source_elt.addEventListener('input', source_changed);
 
@@ -206,6 +206,10 @@ clue_btn.addEventListener('click', toggle_clue_mode);
 
 // ----------------------------------------------------------------------------------------------------
 
+function name_changed () {
+  state_changed();
+}
+
 function source_changed () {
   update_words();
   rebuild_letters();
@@ -225,8 +229,8 @@ function state_changed () {
                                             unused_letters_elt.textContent || // or there are still unused letters
                                             source_elt.querySelector('.illegal') || // or there are illegal chars in source
                                             words_container.querySelector('.illegal')); // or in words.
-  save_btn.disabled = !quote_text()  && !source_text();
   autosave_puzzle();
+  save_btn.disabled = !puzzle_needs_saving();
 }
 
 
@@ -294,13 +298,13 @@ async function get_claude_key() {
 
 async function post_message(system, words) {
   if (window.webkit?.messageHandlers?.suggestClues) {
-    document.getElementById('thinking-overlay').style.display = 'block';
+    show_overlay("Pondering clue suggestions…");
     window.webkit.messageHandlers.suggestClues.postMessage({system: system, words: words}); // will callback to receive_clue_suggestions
   } else {
     const api_key = await get_claude_key();
     if (!api_key) return;
     try {
-      document.getElementById('thinking-overlay').style.display = 'block';
+      show_overlay("Pondering clue suggestions…");
       const data = await do_fetch('https://api.anthropic.com/v1/messages','POST',
                                   { 'x-api-key': api_key,
                                     'anthropic-version': '2023-06-01',
@@ -312,7 +316,7 @@ async function post_message(system, words) {
                                     messages: [{ role: 'user', content: words }]
                                   });
       receive_clue_suggestions(data);
-    } finally { document.getElementById('thinking-overlay').style.display = 'none';  }
+    } finally { hide_overlay();  }
   }
 }
 
@@ -321,34 +325,44 @@ async function suggest_clues() {
   const n = no_clues.length;
   if (n === 0) return;
   post_message(`You are creating clever clues for a crossword puzzle. The user will give you a list of ${n} words, one per line. ` + 
-               "Do not include the word in your clue. " +
-               `Reply with corresponding clues, one per line, in the same order, nothing else. ` +
-               `Your answer must have exactly ${n} lines, no intro, no summary. ` +
-               "Don't ask questions, if you don't understand something, just do your best. ",
+               `Reply with a JSON array of exactly ${n} strings, one clue per word, in the same order.` +
+               `The clue for a word must not include the word. ` +
+               `If a word appear nonsensical, just imagine what it might mean and provide a clue anyway`,
                no_clues.map(full_word_text).join('\n')+'\n');
 }
 
 
 function receive_clue_suggestions(data) {
-  document.getElementById('thinking-overlay').style.display = 'none';
+  hide_overlay();
   if (!data || data.content.length == 0) { console.log('Error getting clue suggestions'); return; }
-  const clues = data.content[0].text.split('\n');
+  const text = data.content[0].text;
+  const clues = JSON.parse(text.slice(text.indexOf('['), text.lastIndexOf(']')+1));
   const no_clues = all_word_rows().filter(row => !clue_input_text(row));
-  if (clues.length !== no_clues.length) { bug("Mismatched answer from claude"); }
+  if (clues.length !== no_clues.length) {
+    console.log('clue data', data);
+    bug("Mismatched answer from claude");
+  }
   else for (let i = 0; i < clues.length; i++) set_input_text(clue_input_elt(no_clues[i]), clues[i]);
 }
 
 // --------------------- loading/saving  -----------------------------------------------------------
 
 
+function puzzle_is_empty () { return quote_text() === '' && source_text() === '' }
+
+function puzzle_needs_saving () {
+  return Puzzle.persistent_name ? (Puzzle.persistent_save !== Puzzle.last_autosave) : !puzzle_is_empty();
+}
+
 function ok_to_discard_puzzle () {
-  return puzzle_is_empty() || confirm('Discard current puzzle? Unsaved changes will be lost.')
+  return !puzzle_needs_saving() || confirm('Discard current puzzle? Unsaved changes will be lost.')
 }
 
 function get_puzzle_data() {
   if (puzzle_is_empty()) return null;
-  return { format: 2,
+  return { format: 3,
            uuid: Puzzle.uuid,
+           name: puzzle_name(),
            quotation: quote_text(),
            source: source_text(),
            words: all_word_rows().map(word_input_text),
@@ -365,7 +379,11 @@ function read_data (str) {
     data.words = data.words.map(word => word.slice(1));
     data.format = 2;
   }
-  if (data.format !== 2) {
+  if (data.format === 2) {
+    data.name = 'New Puzzle';
+    data.format = 3;
+  }
+  if (data.format !== 3) {
     alert(`Unsupported file format version ${data.format}`);
     return null;
   }
@@ -376,17 +394,15 @@ function read_data (str) {
   return data;
 }
 
-function load_puzzle_from_file (data) {
-  // Have confirmed it's ok to discard current puzzle
-  start_fresh_puzzle(data.uuid); // this forces edit mode
-  Puzzle.saved_clues = data.clues;
-  set_input_text(quotation_elt, data.quotation);
-  source_elt.textContent = data.source;
-  make_words_from_data(data.words);
-  rebuild_letters();
-  update_error_markup();
-  state_changed();
+// used on window reactivation and on startup.
+function update_from_autosave() {
+  const stored = localStorage.getItem(AUTOSAVE_PREFIX+Puzzle.uuid);
+  if (!stored || stored === Puzzle.last_autosave) return;
+  // Something changed while we were away.
+  Puzzle.last_autosave = stored; // will be loaded from this.
+  update_puzzle_from_data(read_data(stored));
 }
+
 
 ////  Autosave
 
@@ -395,7 +411,7 @@ const AUTOSAVE_TIME_PREFIX = 'acrostic.autosave.time.'
 
 function autosave_puzzle () {
   const data = get_puzzle_data();
-  // if has been autosaved before, have to save even if no data, so old data doesn't come back!
+  // if has been autosaved before, have to save even if empty now, so old data doesn't come back!
   if (data || Puzzle.last_autosave) {
     const data_str = JSON.stringify(data);
     if (Puzzle.last_autosave !== data_str) {
@@ -407,7 +423,6 @@ function autosave_puzzle () {
 }
 
 function find_newest_autosave () {
-  let max_data = null;
   let max_time = 0;
   let uuid = null;
   for (let i = 0; i < localStorage.length; i++) {
@@ -420,16 +435,8 @@ function find_newest_autosave () {
       }}};
   return uuid;
 }
-  
 
-// used on window reactivation and on startup.
-function update_from_autosave() {
-  const stored = localStorage.getItem(AUTOSAVE_PREFIX+Puzzle.uuid);
-  if (!stored || stored === Puzzle.last_autosave) return;
-
-  // Something changed while we were away.
-  Puzzle.last_autosave = stored;
-  const data = read_data(stored);
+function update_puzzle_from_data (data) {
   const current_rows = all_word_rows();
   const words_are_new = (source_elt.textContent !== data.source ||
                          current_rows.length != data.words.length || 
@@ -441,10 +448,10 @@ function update_from_autosave() {
   if (Puzzle.clue_mode &&
       (quotation_elt.textContent !== data.quotation || words_are_new ||
        current_rows.length !== data.clues.length ||
-       current_rows.some((row, i) => clue_label(row) !== data.clues[i][0])))
+       current_rows.some((row, i) => clue_label_text(row) !== data.clues[i][0])))
     toggle_clue_mode();
 
-
+  puzzle_name_elt.value = data.name;
   set_input_text(quotation_elt, data.quotation);
   set_input_text(source_elt, data.source);
 
@@ -475,14 +482,14 @@ function update_from_autosave() {
       all_word_rows().forEach((row, idx) => set_input_text(clue_input_elt(row), data.clues[idx][1]));
     else
       Puzzle.saved_clues = data.clues;
-
     if (new_index != null) all_word_rows()[new_index].querySelector(active_row_class).focus();
   }
-
   rebuild_letters();
   update_error_markup();
   state_changed(); // buttons etc.
 }
+
+
 
 document.addEventListener('visibilitychange', () => {
   // if (document.visibilityState === 'hidden') { }
@@ -511,18 +518,29 @@ function ensure_logged_in () {
 }
 
 // Save
-
 save_btn.addEventListener('click', async () => {
   if (!ensure_logged_in()) return;
   const name = puzzle_name();
-  if (Puzzle.persistent_name !== name
-      && await puzzle_exists(name)
-      && !confirm(`Puzzle "${name}" exists, overwrite it?`))
-    return;
-  const data = get_puzzle_data();
-  await store_puzzle(name, data);
-  Puzzle.persistent_name = name;
-  });
+  try {
+    if (Puzzle.persistent_name !== name) {
+      const file_content = await load_puzzle(name);
+      if  (file_content && file_content !== Puzzle.last_autosave
+           && !confirm(`Puzzle "${name}" exists, overwrite it?`))
+      return;
+    }
+    show_overlay('Saving…');
+    Puzzle.persistent_save = await store_puzzle(name, get_puzzle_data());
+    // TODO: should be able to use last_autosave instead of get_puzzle_data()...
+    if (Puzzle.persistent_save !== Puzzle.last_autosave) bug('expected last_autosave to match data');
+    Puzzle.persistent_name = name;
+    console.log('saved');
+    hide_overlay();
+    state_changed();
+  } catch (e) {
+    hide_overlay();
+    console.log('Save failed', e);
+  }
+});
 
 
 /// Load
@@ -532,18 +550,29 @@ load_btn.addEventListener('click', async () => {
   if (!ensure_logged_in()) return;
   const file_info = await select_puzzle_dialog();
   if (!file_info) return;
-  const data = file_info.content;
-  load_puzzle_from_file(data);
-  puzzle_name_elt.value = file_info.name;
-  Puzzle.persistent_name = file_info.name;
+  const data = read_data(file_info.content);
+  data.name = file_info.filename; // should already be the same, but maybe someday we'll allow files to be renamed or something....
+  start_fresh_puzzle(data.uuid); // this forces edit mode
+  Puzzle.persistent_name = file_info.filename;
+  Puzzle.persistent_save = file_info.content;
+  update_puzzle_from_data(data); // this updates based on new persistent info
+  if (!Puzzle.last_autosave) bug("I expect last_autosave to be set up");
+  if (file_info.content !== Puzzle.last_autosave) {
+    // Don't worry about the case where file format has changed.
+    if (JSON.parse(file_info.content).format === data.format) {
+      console.log("file_info", file_info.content);
+      console.log("last auto", Puzzle.last_autosave);
+      bug("Expected loaded serialization to be the same as input"); // means loaded something wrong...
+    }}
 });
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 function start_fresh_puzzle (uuid) {
   if (Puzzle.clue_mode) toggle_clue_mode(); // take off clue mode classes buttons etc
-  Puzzle.last_autosave = null;
+  Puzzle.last_autosave = undefined; // must be overwritten
   Puzzle.uuid = uuid ?? crypto.randomUUID();
   Puzzle.persistent_name = null;
+  Puzzle.persistent_save = null;
   puzzle_name_elt.value = 'New Puzzle';
   quotation_elt.textContent = '';
   source_elt.textContent = '';
@@ -572,7 +601,7 @@ else
                                                        
 
 ///  Initialize
-start_fresh_puzzle()
+start_fresh_puzzle();
 
 // If there's an autosaved puzzle, reload that.
 { const uuid = find_newest_autosave();
@@ -583,6 +612,8 @@ start_fresh_puzzle()
   else {
     state_changed(); // update buttons, autosave.
   }
+
+  if (!Puzzle.last_autosave) bug("I expect last_autosave to be set up");
 }
 
 
