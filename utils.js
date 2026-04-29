@@ -4,47 +4,34 @@ function show_storage () {
     console.log(localStorage.key(i), localStorage.getItem(localStorage.key(i)));
   }
 }
-/*
+
 async function fix_gist () {
-  // note content has content.filename, is it always same as they key in the directory?
   const data = await gist_fetch(await get_gist_url(), 'GET');
-  Object.values(data.files).forEach(file => {
+  for (const file of Object.values(data.files)) {
     if (file.filename !== '.keep') {
-      const data = read_data(file.content);
-      if (data.uuid === 'null') {
-        console.log (`fixing ${name}`);
-        data.uuid = crypto.randomUUID();
-        store_puzzle(file.filename, data);
-      }}
-  });
+      const data = read_data(file.content); // brings it to current format version
+      if (file.content !== JSON.stringify(data))
+        await store_puzzle(file.filename, data);
+    }
+  }
   show_gist();
 }
-*/
+
+
 async function show_gist () {
   const url = await get_gist_url();
   const data = await gist_fetch(url, 'GET');
   Object.entries(data.files).forEach(([name, info]) => { console.log(name, info); });
 }
-//////
+////// end debugging tools
 
 
 async function decrypt_key(encrypted_key) {
   let passphrase = localStorage.getItem('acrostic.passphrase');
   if (!passphrase) {
-    passphrase = prompt('Enter password:');
+    passphrase = prompt('Enter site password:');
     if (!passphrase) return null;
   }
-  const key = await decrypt_key_with_passphrase(encrypted_key, passphrase);
-  if (!key) {
-    localStorage.removeItem('acrostic.passphrase');
-    alert('Wrong passphrase');
-    return null;
-  }
-  localStorage.setItem('acrostic.passphrase', passphrase);
-  return key;
-}
-
-async function decrypt_key_with_passphrase(encrypted_key, passphrase) {
   try {
     const enc = new TextEncoder();
     const from_b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
@@ -56,8 +43,12 @@ async function decrypt_key_with_passphrase(encrypted_key, passphrase) {
     const decrypted = await crypto.subtle.decrypt(
       { name: 'AES-GCM', iv: from_b64(encrypted_key.iv) },
       key, from_b64(encrypted_key.data));
-    return new TextDecoder().decode(decrypted);
+    const decoded_key = new TextDecoder().decode(decrypted);
+    localStorage.setItem('acrostic.passphrase', passphrase);
+    return decoded_key;
   } catch {
+    localStorage.removeItem('acrostic.passphrase');
+    alert('Wrong passphrase');
     return null; // wrong passphrase
   }
 }
@@ -112,6 +103,36 @@ function letters_of (bag_of_chars) {
   if (bag_of_chars == null) bug("bad call to letters_of");
   return [...bag_of_chars].filter(is_letter).join('').toUpperCase();
 }
+
+function read_data (str) {
+  const data = JSON.parse(str);
+  if (data.format === 1) {
+    data.uuid = crypto.randomUUID();
+    const clue_table = data.clues;
+    data.clues = data.words.map(word => [word+':', clue_table[letters_of(word)]]);
+    data.words = data.words.map(word => word.slice(1));
+    data.format = 2;
+  }
+  if (data.format === 2) {
+    data.name = 'New Puzzle';
+    data.format = 3;
+  }
+  if (data.format === 3) {
+    data.clues = data.clues.map(([label, clue]) => [label.slice(0, -1), clue]);
+    data.format = 4;
+  }
+
+  if (data.format !== 4) {
+    alert(`Unsupported file format version ${data.format}`);
+    return null;
+  }
+  if (data.words.length != letters_of(data.source).length) {
+    alert('Corrupted data file');
+    return null;
+  }
+  return data;
+}
+
 
 
 function first_mismatch (string1, string2, max) {
@@ -212,13 +233,13 @@ function set_input_text (elt, str) {
   if (elt.textContent !== str) elt.textContent = str;
 }
 
+const progress_overlay_elt = document.getElementById('thinking-overlay');
+
 function show_overlay(text) {
-  const overlay = document.getElementById('thinking-overlay');
-  overlay.textContent = text;
-  overlay.style.display = 'block';
+  progress_overlay_elt.textContent = text;
+  progress_overlay_elt.style.display = 'block';
 }
 
 function hide_overlay () {
-  const overlay = document.getElementById('thinking-overlay');
-  overlay.style.display = 'none';
+  progress_overlay_elt.style.display = 'none';
 }

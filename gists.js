@@ -3,7 +3,7 @@ const GISTS_GITHUB_KEY = {"salt":"0cHUwtSEypu38nxB7iOYjA==","iv":"OICYj0TZfHrqe0
 const REGISTRY_GIST_ID = '1ffcabe8f9baa5cddb7e2d12d3bf2898';
 
 let cached_github_key_promise = null;
-async function gist_fetch (url, method, content) {
+async function gist_request (url, method, content) {
   const key = await (cached_github_key_promise ||= decrypt_key(GISTS_GITHUB_KEY));
   return do_fetch(url, method, { 'Authorization': `token ${key}`,
                                  'Accept': 'application/vnd.github.v3+json' }, content);
@@ -16,7 +16,7 @@ async function get_gist_url () {
   const username = Puzzle.username;// puzzle_username();
   const stored = localStorage.getItem('acrostic.gist_url');
   if (stored) return stored;
-  const registry_data = await gist_fetch(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'GET');
+  const registry_data = await gist_request(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'GET');
   const registry = JSON.parse(registry_data.files['registry.json'].content);
   function register_url_for(id) {
     const url = `https://api.github.com/gists/${id}`;
@@ -32,38 +32,39 @@ async function get_gist_url () {
   }
 
   // New user — create their gist and register them
-  const data = await gist_fetch('https://api.github.com/gists', 'POST', 
-                                { description: `Acrostic puzzles – ${username}`,
-                                  public: false,
-                                  files: { '.keep': { content: '{}' } }  // gists need at least one file.
-                                });
+  const data = await gist_request('https://api.github.com/gists', 'POST', 
+                                  { description: `Acrostic puzzles – ${username}`,
+                                    public: false,
+                                    files: { '.keep': { content: '{}' } }  // gists need at least one file.
+                                  });
   const gist_id = data.id;
   // Update registry
   registry[username] = gist_id;
-  await gist_fetch(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'PATCH', 
-                   { files: { 'registry.json': { content: JSON.stringify(registry) } } });
+  await gist_request(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'PATCH', 
+                     { files: { 'registry.json': { content: JSON.stringify(registry) } } });
 
   return register_url_for(gist_id);
 }
 
 async function store_puzzle(name, puzzle_data) {
   const content = JSON.stringify(puzzle_data);
-  await gist_fetch(await get_gist_url(), 'PATCH', { files: { [name]: { content: content } } });
+  await gist_request(await get_gist_url(), 'PATCH', { files: { [name]: { content: content } } });
   return content;
 }
 
 
 // Sigh, this loads the whole gist.  If this becomes a problem, could store a list of puzzles in .keep...
 async function load_puzzle (name) {
-  const data = await gist_fetch(await get_gist_url(), 'GET');
-  return data.files[name] && data.files[name].content;
+  const gist = await gist_request(await get_gist_url(), 'GET');
+  return gist.files[name]?.content;
 }
 
 async function select_puzzle_dialog () {
-  const data = await gist_fetch(await get_gist_url(), 'GET');
+  const gist = await gist_request(await get_gist_url(), 'GET');
   // TODO: change to puzzle files having a prefix or suffix, rather than enumerating
   // all files that are NOT puzzles.
-  const puzzle_files = Object.values(data.files).filter(file => file.filename !== '.keep');
+  const puzzle_files = Object.values(gist.files).filter(file => file.filename !== '.keep');
+
   return new Promise(resolve => {
     const overlay = document.createElement('div');
     overlay.className = 'dialog-overlay';

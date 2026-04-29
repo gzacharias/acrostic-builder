@@ -1,9 +1,7 @@
+// TODO: Export, to put puzzle in file
 // TODO: Allow Edit Clues even if puzzle is not complete, as long as there are some words.
 // TODO switch to setAttribute('placeholder') for word_container
-// TODO: in ok_to__discard, don't confirm if no changes since last save.
 // TODO: Removme save/load handlers in XCode
-
-
 
 const puzzle_name_elt = document.getElementById('puzzle-name');
 const quotation_elt = document.getElementById('quotation');
@@ -11,6 +9,7 @@ const source_elt    = document.getElementById('source');
 const unused_letters_elt   = document.getElementById('letters');
 const words_container = document.getElementById('words-container');
 const words_placeholder = document.getElementById('words-placeholder');
+
 const clue_btn      = document.getElementById('clue-btn');
 const save_btn      = document.getElementById('save-btn');
 const load_btn      = document.getElementById('load-btn');
@@ -24,6 +23,9 @@ const Puzzle = { clue_mode: false,
                  uuid: null,
                };
 
+const LABEL_SUFFIX = ':';
+
+
 function puzzle_name () { return puzzle_name_elt.value.trim(); }
 
 function source_text () { return source_elt.textContent; }
@@ -31,12 +33,13 @@ function quote_text () { return quotation_elt.textContent; }
 
 function all_word_rows () { return [...words_container.querySelectorAll('.word-row')] }
 function word_initial_elt (row) { return row.querySelector('.word-letter') }
-function word_initial (row) { return row.querySelector('.word-letter').textContent }
+function word_initial_text (row) { return row.querySelector('.word-letter').textContent }
 function word_input_elt (row) { return row.querySelector('.word-input') }
 function word_input_text (row) { return row.querySelector('.word-input').textContent }
-function full_word_text (row) { return word_initial(row) + word_input_text(row) }
+function full_word_text (row) { return word_initial_text(row) + word_input_text(row) }
 function clue_label_elt (row) { return row.querySelector('.clue-label') }
 function clue_label_text (row) {return row.querySelector('.clue-label').textContent }
+function clue_word_text (row) {return clue_label_text(row).slice(0, -LABEL_SUFFIX.length) }
 function clue_input_elt (row) { return row.querySelector('.clue-input') }
 function clue_input_text (row) { return row.querySelector('.clue-input').textContent }
 
@@ -147,11 +150,11 @@ function update_words () {
   const new_source = source_text();
   const new_initials = letters_of(new_source);
   const rows = all_word_rows();
-  if (new_initials !== map_to_str(rows, word_initial)) {
+  if (new_initials !== map_to_str(rows, word_initial_text)) {
     // initials changed, so have to make new words section.
     const word_map = {}; // ch => all words starting with that char.
     for (const word_row of rows) {
-      const ch = word_initial(word_row);
+      const ch = word_initial_text(word_row);
       if (!word_map[ch]) word_map[ch] = [];
       word_map[ch].push(word_input_text(word_row));
     }
@@ -160,11 +163,11 @@ function update_words () {
   }
 }
 
+
 function current_clues_from_ui () {
-  return all_word_rows().map(row => [clue_label_text(row), clue_input_text(row)]);
+  return all_word_rows().map(row => [clue_word_text(row), clue_input_text(row)]);
 }
 
-const LABEL_SUFFIX = ':';
 
 // Update clues to match current words
 function update_clues (clues_arr) {
@@ -172,12 +175,12 @@ function update_clues (clues_arr) {
   const indent =  (Math.max(...rows.map(row => word_input_text(row).length)) + 2) + 'ch';
   const clue_map = {};
   // If there are multiple instances of the same word, should store both clues, but sooo unlikely...
-  clues_arr.forEach(([label, text]) => { clue_map[letters_of(label)] = text; });
+  clues_arr.forEach(([word, text]) => { clue_map[letters_of(word)] = text; });
   for (const row of rows) {
     const word = full_word_text(row);
     clue_label_elt(row).textContent = word + LABEL_SUFFIX;
     clue_label_elt(row).style.width = indent;
-    set_input_text(clue_input_elt(row),clue_map[letters_of(word)] ?? '');
+    set_input_text(clue_input_elt(row), clue_map[letters_of(word)] ?? '');
     clue_input_elt(row).setAttribute('placeholder', `enter clue for ${word}…`);
   }
 }
@@ -364,7 +367,7 @@ function ok_to_discard_puzzle () {
 
 function get_puzzle_data() {
   if (puzzle_is_empty()) return null;
-  return { format: 3,
+  return { format: 4,
            uuid: Puzzle.uuid,
            name: puzzle_name(),
            quotation: quote_text(),
@@ -372,30 +375,6 @@ function get_puzzle_data() {
            words: all_word_rows().map(word_input_text),
            clues: (Puzzle.clue_mode ? current_clues_from_ui() : Puzzle.saved_clues)
          };
-}
-
-function read_data (str) {
-  const data = JSON.parse(str);
-  if (data.format === 1) {
-    data.uuid = crypto.randomUUID();
-    const clue_table = data.clues;
-    data.clues = data.words.map(word => [word+LABEL_SUFFIX, clue_table[letters_of(word)]]);
-    data.words = data.words.map(word => word.slice(1));
-    data.format = 2;
-  }
-  if (data.format === 2) {
-    data.name = 'New Puzzle';
-    data.format = 3;
-  }
-  if (data.format !== 3) {
-    alert(`Unsupported file format version ${data.format}`);
-    return null;
-  }
-  if (data.words.length != letters_of(data.source).length) {
-    alert('Corrupted data file');
-    return null;
-  }
-  return data;
 }
 
 // used on window reactivation and on startup.
@@ -452,7 +431,7 @@ function update_puzzle_from_data (data) {
   if (Puzzle.clue_mode &&
       (quotation_elt.textContent !== data.quotation || words_are_new ||
        current_rows.length !== data.clues.length ||
-       current_rows.some((row, i) => clue_label_text(row) !== data.clues[i][0])))
+       current_rows.some((row, i) => clue_word_text(row) !== data.clues[i][0])))
     toggle_clue_mode();
 
   puzzle_name_elt.value = data.name;
@@ -460,18 +439,18 @@ function update_puzzle_from_data (data) {
   set_input_text(source_elt, data.source);
 
   if (words_are_new) {
-    // If focus is on a word (or clue), try to keep the focus on the same word.
+    // If focus is on a word row, try to keep the focus on the same row
     // In the future could also try to maintain selection...
     function dwim_new_index (inp, data) {
       const old_index = +inp.dataset.index;
       const row = current_rows[old_index]
-      const initial = word_initial(row);
+      const initial = word_initial_text(row);
       const input = word_input_text(row);
       // Try to find the same word in the new words, but account for the fact that the same word can
       // appear multiple times during editing (eg. if the word is just the initial).
       let count = 0;
       for (let i = 0; i < old_index; i++)
-        if (initial === word_initial(current_rows[i]) && input === word_input_text(current_rows[i])) count++;
+        if (initial === word_initial_text(current_rows[i]) && input === word_input_text(current_rows[i])) count++;
       const new_initials = letters_of(data.source);
       if (data.words.length != new_initials.length) bug("bad file");
       for (let i = 0; i < new_initials.length; i++)
@@ -483,7 +462,7 @@ function update_puzzle_from_data (data) {
     const new_index = active_row_class && dwim_new_index(active, data);
     make_words_from_data(data.words);
     if (Puzzle.clue_mode) // in clue mode, already checked that everything is copacetic
-      all_word_rows().forEach((row, idx) => set_input_text(clue_input_elt(row), data.clues[idx][1]));
+      all_word_rows().forEach((row, i) => set_input_text(clue_input_elt(row), data.clues[i][1]));
     else
       Puzzle.saved_clues = data.clues;
     if (new_index != null) all_word_rows()[new_index].querySelector(active_row_class).focus();
@@ -573,7 +552,7 @@ load_btn.addEventListener('click', async () => {
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 function start_fresh_puzzle (uuid) {
   if (Puzzle.clue_mode) toggle_clue_mode(); // take off clue mode classes buttons etc
-  Puzzle.last_autosave = undefined; // must be overwritten
+  Puzzle.last_autosave = undefined;  // gets overwritten almost immediately
   Puzzle.uuid = uuid ?? crypto.randomUUID();
   Puzzle.persistent_name = null;
   Puzzle.persistent_save = null;
@@ -619,6 +598,3 @@ start_fresh_puzzle();
 
   if (!Puzzle.last_autosave) bug("I expect last_autosave to be set up");
 }
-
-
-
