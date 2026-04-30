@@ -22,7 +22,6 @@ const Puzzle = { clue_mode: false,
                  persistent_name: null, // last saved/loaded name
                  persistent_save: null, // last saved/loaded data
                  last_autosave: null,
-                 username: null,
                  uuid: null,
                };
 
@@ -488,9 +487,21 @@ document.addEventListener('visibilitychange', () => {
 
 // --------------------- Buttons -----------------------------------------------------------
 
+let User_Name = null;
+
+function check_user_name (prompt) {
+  const name = get_user_name(prompt);
+  if (name) {
+    const elt = document.getElementById('username-display');
+    elt.textContent = `Welcome back ${name}!`;
+    elt.style.display = 'block';
+  }
+  User_Name = name;
+}
+
 function ensure_logged_in () {
-  if (!Puzzle.username) Puzzle.username = get_user_name();
-  return Puzzle.username;
+  if (!User_Name) check_user_name('Enter user name: ');
+  return User_Name;
 }
 
 // Save
@@ -499,13 +510,13 @@ save_btn.addEventListener('click', async () => {
   const name = puzzle_name();
   try {
     if (Puzzle.persistent_name !== name) {
-      const file_content = await load_puzzle(Puzzle.username, name);
+      const file_content = await load_puzzle(User_Name, name);
       if  (file_content && file_content !== Puzzle.last_autosave
            && !confirm(`Puzzle "${name}" exists, overwrite it?`))
       return;
     }
     show_overlay('Saving…');
-    Puzzle.persistent_save = await store_puzzle(Puzzle.username, name, get_puzzle_data());
+    Puzzle.persistent_save = await store_puzzle(User_Name, name, get_puzzle_data());
     // TODO: should be able to use last_autosave instead of get_puzzle_data()...
     if (Puzzle.persistent_save !== Puzzle.last_autosave) bug('expected last_autosave to match data');
     Puzzle.persistent_name = name;
@@ -524,7 +535,7 @@ save_btn.addEventListener('click', async () => {
 load_btn.addEventListener('click', async () => {
   if (!ok_to_discard_puzzle()) return;
   if (!ensure_logged_in()) return;
-  const file_info = await select_puzzle_dialog(Puzzle.username);
+  const file_info = await select_puzzle_dialog(User_Name);
   if (!file_info) return;
   const data = read_data(file_info.content);
   data.name = file_info.filename; // should already be the same, but maybe someday we'll allow files to be renamed or something....
@@ -555,7 +566,7 @@ function start_fresh_puzzle (uuid) {
   make_words_from_data([]);
   unused_letters_elt.textContent = '';
 }
-  
+
 
 /// Restart
 restart_btn.addEventListener('click', () => {
@@ -575,6 +586,7 @@ else
 
 
 ///  Initialize
+check_user_name();
 start_fresh_puzzle();
 
 // If there's an autosaved puzzle, reload that.

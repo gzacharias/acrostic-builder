@@ -19,6 +19,7 @@ body {
     padding: 24px;
     max-width: 800px;
     margin: 0 auto;
+    position: relative;
 }
 
 body.clue-mode #letters-subview { display: none; }
@@ -37,6 +38,13 @@ h1 {
     color: darkblue;
     margin-bottom: 20px;
 }
+
+#username-display {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+}
+
 
 .editable {
     background: var(--text-background);
