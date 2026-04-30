@@ -1,18 +1,21 @@
+// TODO: show a "welcome <username>" when know username
 // TODO: Export, to put puzzle in file
 // TODO: Allow Edit Clues even if puzzle is not complete, as long as there are some words.
-// TODO switch to setAttribute('placeholder') for word_container
 // TODO: Removme save/load handlers in XCode
+// TODO: Word input can be half the size it is, and can be in two columns
 
 const puzzle_name_elt = document.getElementById('puzzle-name');
 const quotation_elt = document.getElementById('quotation');
 const source_elt    = document.getElementById('source');
 const unused_letters_elt   = document.getElementById('letters');
 const words_container = document.getElementById('words-container');
-const words_placeholder = document.getElementById('words-placeholder');
 
 const clue_btn      = document.getElementById('clue-btn');
 const save_btn      = document.getElementById('save-btn');
 const load_btn      = document.getElementById('load-btn');
+const restart_btn   = document.getElementById('restart-btn');
+const quit_btn      = document.getElementById('quit-btn');
+
 
 const Puzzle = { clue_mode: false,
                  saved_clues: [], // null when in clue mode, array in edit mode
@@ -33,15 +36,18 @@ function quote_text () { return quotation_elt.textContent; }
 
 function all_word_rows () { return [...words_container.querySelectorAll('.word-row')] }
 function word_initial_elt (row) { return row.querySelector('.word-letter') }
-function word_initial_text (row) { return row.querySelector('.word-letter').textContent }
 function word_input_elt (row) { return row.querySelector('.word-input') }
-function word_input_text (row) { return row.querySelector('.word-input').textContent }
-function full_word_text (row) { return word_initial_text(row) + word_input_text(row) }
 function clue_label_elt (row) { return row.querySelector('.clue-label') }
-function clue_label_text (row) {return row.querySelector('.clue-label').textContent }
-function clue_word_text (row) {return clue_label_text(row).slice(0, -LABEL_SUFFIX.length) }
 function clue_input_elt (row) { return row.querySelector('.clue-input') }
-function clue_input_text (row) { return row.querySelector('.clue-input').textContent }
+
+
+function word_initial_text (row) { return word_initial_elt(row).textContent }
+function word_input_text (row) { return word_input_elt(row).textContent }
+function full_word_text (row) { return word_initial_text(row) + word_input_text(row) }
+function clue_label_text (row) { return clue_label_elt(row).textContent }
+function clue_input_text (row) { return clue_input_elt(row).textContent }
+function clue_word_text (row) { return clue_label_text(row).slice(0, -LABEL_SUFFIX.length) }
+
 
 puzzle_name_elt.addEventListener('input', name_changed);
 quotation_elt.addEventListener('input', quote_changed);
@@ -104,14 +110,12 @@ function make_word_row (index, ch, html) {
   row.dataset.index = index;
 
   add_div(row, 'word-part',
-          word_part => { word_part.style.flex = '1';
-                         add_span(word_part, 'word-letter', ch);
+          word_part => { add_span(word_part, 'word-letter', ch);
                          add_div(word_part,  'word-input editable',
-                                 inp => { inp.spellcheck = false;
+                                 inp => { inp.setAttribute('spellcheck', 'false');
                                           inp.setAttribute('autocomplete', 'off');
                                           inp.setAttribute('autocorrect', 'off');
                                           inp.setAttribute('autocapitalize', 'off');
-                                          inp.style.flex = '1';
                                           inp.contentEditable = 'true';
                                           inp.dataset.index = index;
                                           inp.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
@@ -121,8 +125,7 @@ function make_word_row (index, ch, html) {
                                         });
                        });
   add_div(row, 'clue-part',
-          clue_part => { clue_part.style.flex = '1';
-                         add_span(clue_part, 'clue-label');
+          clue_part => { add_span(clue_part, 'clue-label');
                          add_div(clue_part, 'clue-input editable',
                                  inp => { inp.contentEditable = 'true';
                                           inp.dataset.index = row.dataset.index;
@@ -136,10 +139,6 @@ function make_word_row (index, ch, html) {
 // This is primarily called when source changes, so selection is most likely in the source, so don't worry about selection...
 function make_words_from_data (word_arr) {
   words_container.innerHTML = '';
-  if (word_arr.length === 0) {
-    words_container.appendChild(words_placeholder);
-    return;
-  }
   const initials = letters_of(source_text());
   for (let i = 0; i < initials.length; i++)
     words_container.appendChild(make_word_row(i, initials[i], word_arr[i]));
@@ -172,16 +171,18 @@ function current_clues_from_ui () {
 // Update clues to match current words
 function update_clues (clues_arr) {
   const rows = all_word_rows();
-  const indent =  (Math.max(...rows.map(row => word_input_text(row).length)) + 2) + 'ch';
+  const indent =  Math.max(...rows.map(row => word_input_text(row).length)) + 2;
   const clue_map = {};
   // If there are multiple instances of the same word, should store both clues, but sooo unlikely...
   clues_arr.forEach(([word, text]) => { clue_map[letters_of(word)] = text; });
   for (const row of rows) {
     const word = full_word_text(row);
-    clue_label_elt(row).textContent = word + LABEL_SUFFIX;
-    clue_label_elt(row).style.width = indent;
-    set_input_text(clue_input_elt(row), clue_map[letters_of(word)] ?? '');
-    clue_input_elt(row).setAttribute('placeholder', `enter clue for ${word}…`);
+    const label = clue_label_elt(row);
+    const input = clue_input_elt(row);
+    label.textContent = word + LABEL_SUFFIX;
+    label.style.width = `${indent}ch`;
+    set_input_text(input, clue_map[letters_of(word)] ?? '');
+    input.setAttribute('placeholder', `enter clue for ${word}…`);
   }
 }
 
@@ -202,9 +203,7 @@ function toggle_clue_mode () {
     suggest_clues();
   }
   Puzzle.clue_mode = !Puzzle.clue_mode;
-  words_container.classList.toggle('clue-mode', Puzzle.clue_mode);
   document.body.classList.toggle('clue-mode', Puzzle.clue_mode);
-  document.getElementById('words-label').textContent = Puzzle.clue_mode ? 'Clues' : 'Words';
   clue_btn.textContent = (Puzzle.clue_mode ? 'Edit Puzzle' : 'Add Clues');
 }
 
@@ -331,7 +330,9 @@ async function suggest_clues() {
   const no_clues = all_word_rows().filter(row => !clue_input_text(row));
   const n = no_clues.length;
   if (n === 0) return;
-  post_message(`You are creating clever clues for a crossword puzzle. The user will give you a list of ${n} words, one per line. ` + 
+  post_message('You are creating clever clues for a hard crossword puzzle.' +
+               'The clues should be non-obvious, hard to guess, playful, interesting. ' +
+               `The user will give you a list of ${n} words, one per line. ` + 
                `Reply with a JSON array of exactly ${n} strings, one clue per word, in the same order.` +
                `The clue for a word must not include the word. ` +
                `If a word appear nonsensical, just imagine what it might mean and provide a clue anyway`,
@@ -541,7 +542,6 @@ load_btn.addEventListener('click', async () => {
     }}
 });
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 function start_fresh_puzzle (uuid) {
   if (Puzzle.clue_mode) toggle_clue_mode(); // take off clue mode classes buttons etc
   Puzzle.last_autosave = undefined;  // gets overwritten almost immediately
@@ -558,7 +558,7 @@ function start_fresh_puzzle (uuid) {
   
 
 /// Restart
-document.getElementById('restart-btn').addEventListener('click', () => {
+restart_btn.addEventListener('click', () => {
   if (ok_to_discard_puzzle()) {
     start_fresh_puzzle();
     state_changed();
@@ -567,13 +567,12 @@ document.getElementById('restart-btn').addEventListener('click', () => {
 /// Quit
 
 if (!window.webkit?.messageHandlers?.quit)
-  document.getElementById('quit-btn').style.display = 'none';
+  quit_btn.style.display = 'none';
 else
-  document.getElementById('quit-btn').addEventListener('click', () => {
+  quit_btn.addEventListener('click', () => {
     if (ok_to_discard_puzzle()) window.webkit.messageHandlers.quit.postMessage('')
   });
 
-                                                       
 
 ///  Initialize
 start_fresh_puzzle();

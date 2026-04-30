@@ -54,6 +54,12 @@ h1 {
     border-color: var(--text-focus-border);
 }
 
+.illegal {
+    color: var(--illegal-color);
+    font-weight: bold;
+}
+
+
 .panel {
     display: flex;
     flex-direction: column;
@@ -107,17 +113,22 @@ label {
     line-height: 1.5;
 }
 
-/* Words column */
+/******************* words ***************************************************************/
+
+#words-label::after { content: 'Words'; }
+body.clue-mode #words-label::after { content: 'Clues'; }
+
 #words-container {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
-.word-part { display: flex; }
-#words-container .clue-part {display: none; }
-#words-container.clue-mode .word-part {display: none; }
-#words-container.clue-mode .clue-part {display: flex; }
+#words-container:empty::before {
+    content: attr(placeholder);
+    color: #555;
+    font-style: italic;
+}
 
 .word-row {
     display: flex;
@@ -126,11 +137,12 @@ label {
     border-radius: 4px;
 }
 
-.illegal {
-    color: var(--illegal-color);
-    font-weight: bold;
+.word-part {
+    display: flex;
+    flex: 1;
 }
 
+body.clue-mode .word-part {display: none; }
 
 .word-letter {
     align-self: stretch;
@@ -148,29 +160,21 @@ label {
 .word-input {
     border: none;
     padding: 4px 0;
+    flex: 1;
 }
 
 .word-input[placeholder]:empty::before {
     padding-left: 6px;
 }
 
-#words-placeholder {
-    color: #555;
-    font-style: italic;
-}
-
 .clue-part {
-    display: flex;
+    display: none;
     align-items: baseline;
     flex: 1;
 }
 
-.clue-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 2px 0;
-}
+body.clue-mode .clue-part {display: flex; }
+
 
 .clue-label {
     font-size: 17px;
@@ -182,6 +186,8 @@ label {
     padding: 4px 0 4px 6px;
     flex: 1;
 }
+
+/*****************************************************************************************************/
 
 .buttons {
     display: flex;

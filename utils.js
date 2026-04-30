@@ -18,9 +18,8 @@ async function fix_gist (username) {
 }
 
 
-async function show_gist () {
-  const url = await get_gist_url();
-  const data = await gist_fetch(url, 'GET');
+async function show_gist (username) {
+  const data = await gist_request(await get_gist_url(username), 'GET');
   Object.entries(data.files).forEach(([name, info]) => { console.log(name, info); });
 }
 ////// end debugging tools
