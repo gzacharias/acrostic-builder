@@ -5,13 +5,13 @@ function show_storage () {
   }
 }
 
-async function fix_gist () {
-  const data = await gist_fetch(await get_gist_url(), 'GET');
+async function fix_gist (username) {
+  const data = await gist_request(await get_gist_url(username), 'GET');
   for (const file of Object.values(data.files)) {
     if (file.filename !== '.keep') {
       const data = read_data(file.content); // brings it to current format version
       if (file.content !== JSON.stringify(data))
-        await store_puzzle(file.filename, data);
+        await store_puzzle(username, file.filename, data);
     }
   }
   show_gist();
@@ -52,6 +52,15 @@ async function decrypt_key(encrypted_key) {
     return null; // wrong passphrase
   }
 }
+
+function get_user_name () {
+  const stored = localStorage.getItem('acrostic.username');
+  if (stored) return stored;
+  const name = prompt("Enter user name: ");
+  if (name) localStorage.setItem('acrostic.username', name);
+  return name;
+}
+
 
 async function do_fetch (url, method, headers, content) {
   let response;

@@ -1,9 +1,7 @@
-// TODO: add button for Show Illegal
 // TODO: in builder, provide support for a source label, would be like "Author only", and add it here.
-// TODO: in edit mode, words must allow spaces and punctuation, which will get ignored.
 // TODO: tooltips.
 // TODO: make up/down arrow work in the grid
-// TODO: way to control Show_Illegal
+// TODO: way to control Show_Illegal, also go-to-next-cell-on-input.
 // TODO: should resize as window changes.
 
 
@@ -85,44 +83,35 @@ function handle_selection_change (grid_input) {
 
 
 
-// This will eventually come from a loaded puzzle file.
-// Expected shape:
-//   puzzle.quote    — string, the full quotation text
-//   puzzle.source   — string, attribution
-//   puzzle.words    — array of { clue, letters: [...letterIndices] }
-//                     where letterIndices are 1-based indices into the
-//                     sequence of letters in the quote.
-//
-// For now, word assignments are synthesized by cycling.
-// Right now, we save words which are missing the initial letter, and the clues
-
 // Taken from puzzlebaron, only for testing.
 const test_puzzle = {
-  "format": 1,
+  "format": 4,
   "quote": "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
+  "uuid": "lasjkd;asjfd",
+  "name": "test puzzle",
   "source": "Albert Camus",
-  "words":["As the crow",
-           "La Boheme",
-           "Botanist",
-           "Epic poet",
-           "Ropes-off",
-           "Tied-to",
-           "Channeled",
-           "Abolished",
-           "Magnitudes",
-           "Unidentified",
-           "Saddening"],
-  "clues": {"ASTHECROW": "___ flies",
-            "LABOHEME": "Inspiration for Rent",
-            "BOTANIST": "Plant studier",
-            "EPICPOET": "Homer or Dante",
-            "ROPESOFF": "Secures, as a crime scene",
-            "TIEDTO": "Connected with",
-            "CHANNELED": "Did a psychic's job, maybe",
-            "ABOLISHED": "Put an end to",
-            "MAGNITUDES": "Extents",
-            "UNIDENTIFIED": "Part of U.F.O.",
-            "SADDENING": "Depressing"}
+  "words":["s the crow",
+           "a Boheme",
+           "otanist",
+           "pic poet",
+           "opes-off",
+           "ied-to",
+           "hanneled",
+           "bolished",
+           "agnitudes",
+           "nidentified",
+           "addening"],
+  "clues": [["As the crow", "___ flies"],
+            ["La Boheme", "Inspiration for Rent"],
+            ["Botanist", "Plant studier"],
+            ["Epic poet", "Homer or Dante"],
+            ["Ropes-off", "Secures, as a crime scene"],
+            ["Tied-to", "Connected with"],
+            ["Channeled", "Did a psychic's job, maybe"],
+            ["Abolished", "Put an end to"],
+            ["Magnitudes", "Extents"],
+            ["Unidentified", "Part of U.F.O."],
+            ["Saddening", "Depressing"]]
 };
 
 function report_bad_puzzle (message) {
@@ -140,11 +129,27 @@ function word_index_label (word_index) {
 
 function letter_index_label (letter_index) { return letter_index+1 }
 
+function check_puzzle_complete (puzzle) {
+  let source_letters = letters_of(puzzle.source);
+  if (puzzle.words.length != puzzle.clues.length ||
+      puzzle.words.length != source_letters.length)
+    return false;
+  if (puzzle.words.some((word_input, index) => 
+                        (source_letters[index] + word_input) !== puzzle.clues[index][0]))
+    return false;
+  return true;
+}
+
 function init_puzzle_data (puzzle) {
+  if (!check_puzzle_complete(puzzle)) {
+    alert ('incomplete puzzle');
+    return;
+  }
+
   let next_letter_index = 0;
   const available_cells = {}; // each letter -> all the possible cells for it.
 
-  const quote_cells = [...puzzle.quote.toUpperCase()].map((ch, index) => {
+  const quote_cells = [...puzzle.quotation.toUpperCase()].map((ch, index) => {
     const cell = { index: index, char: ch };
     if (is_letter(ch)) {
       cell.letter_index = next_letter_index++;
@@ -153,14 +158,17 @@ function init_puzzle_data (puzzle) {
     return cell;
   });
 
+
   if (next_letter_index === 0) {
     return report_bad_puzzle('No letters in quote!');
   }
 
   let clue_index = 0;
-  const words = puzzle.words.map((word, word_index) => {
+  const source_letters = letters_of(puzzle.source);
+  const words = puzzle.words.map((word_input, word_index) => {
+    const word = source_letters[word_index] + word_input;
     return { word: word,
-             clue: puzzle.clues[word],
+             clue: puzzle.clues[word_index][1],
              letters: [...letters_of(word)].map(ch => {
                const cell = available_cells[ch].pop(); // claim this cell
                cell.word_index = word_index;
@@ -278,7 +286,14 @@ function render_puzzle (puzzle_data) {
 }
 
 
+(async () => { 
+  const file_info  = await select_puzzle_dialog(get_user_name());
+  const data = read_data(file_info.content);
+  const info = init_puzzle_data(data);
+  render_puzzle(info);
+})();
 
 
 
-render_puzzle(init_puzzle_data(test_puzzle));
+
+

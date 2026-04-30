@@ -12,8 +12,7 @@ async function gist_request (url, method, content) {
 
 // Checks localStorage first, then registry.
 // Creates new gist if username is unclaimed.
-async function get_gist_url () {
-  const username = Puzzle.username;// puzzle_username();
+async function get_gist_url (username) {
   const stored = localStorage.getItem('acrostic.gist_url');
   if (stored) return stored;
   const registry_data = await gist_request(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'GET');
@@ -46,21 +45,21 @@ async function get_gist_url () {
   return register_url_for(gist_id);
 }
 
-async function store_puzzle(name, puzzle_data) {
+async function store_puzzle(user, name, puzzle_data) {
   const content = JSON.stringify(puzzle_data);
-  await gist_request(await get_gist_url(), 'PATCH', { files: { [name]: { content: content } } });
+  await gist_request(await get_gist_url(user), 'PATCH', { files: { [name]: { content: content } } });
   return content;
 }
 
 
 // Sigh, this loads the whole gist.  If this becomes a problem, could store a list of puzzles in .keep...
-async function load_puzzle (name) {
-  const gist = await gist_request(await get_gist_url(), 'GET');
+async function load_puzzle (user, name) {
+  const gist = await gist_request(await get_gist_url(user), 'GET');
   return gist.files[name]?.content;
 }
 
-async function select_puzzle_dialog () {
-  const gist = await gist_request(await get_gist_url(), 'GET');
+async function select_puzzle_dialog (user) {
+  const gist = await gist_request(await get_gist_url(user), 'GET');
   // TODO: change to puzzle files having a prefix or suffix, rather than enumerating
   // all files that are NOT puzzles.
   const puzzle_files = Object.values(gist.files).filter(file => file.filename !== '.keep');
