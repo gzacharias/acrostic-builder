@@ -52,10 +52,10 @@ async function decrypt_key(encrypted_key) {
   }
 }
 
-function get_user_name (prompt) {
+function get_user_name (prompt_text) {
   const stored = localStorage.getItem('acrostic.username');
-  if (stored || !prompt) return stored;
-  const name = prompt(prompt);
+  if (stored || !prompt_text) return stored;
+  const name = prompt(prompt_text);
   if (name) localStorage.setItem('acrostic.username', name);
   return name;
 }
