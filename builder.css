@@ -17,7 +17,7 @@ body {
     background: #cecfb2;
     color: black;
     padding: 24px;
-    max-width: 800px;
+/*    max-width: 800px; */
     margin: 0 auto;
     position: relative;
 }
@@ -87,7 +87,7 @@ label {
 }
 
 #quotation {
-    min-height: 5.4em;
+    min-height: 2.8em;
     white-space: pre-wrap;
 }
 
@@ -128,8 +128,16 @@ body.clue-mode #words-label::after { content: 'Clues'; }
 
 #words-container {
     display: flex;
+    flex-direction: row;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.words-column {
+    display: flex;
     flex-direction: column;
     gap: 6px;
+    flex: 1;
 }
 
 #words-container:empty::before {
@@ -177,7 +185,8 @@ body.clue-mode .word-part {display: none; }
 
 .clue-part {
     display: none;
-    align-items: baseline;
+    /* align-items: baseline; */
+    flex-direction: column;
     flex: 1;
 }
 

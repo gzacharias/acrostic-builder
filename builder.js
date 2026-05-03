@@ -1,3 +1,4 @@
+// Change persistent_name/changed to file_name file_dirty
 // TODO: show a "welcome <username>" when know username
 // TODO: Export, to put puzzle in file
 // TODO: Allow Edit Clues even if puzzle is not complete, as long as there are some words.
@@ -139,8 +140,11 @@ function make_word_row (index, ch, html) {
 function make_words_from_data (word_arr) {
   words_container.innerHTML = '';
   const initials = letters_of(source_text());
+  const col1 = add_div(words_container, 'words-column');
+  const col2 = add_div(words_container, 'words-column');
+  const half = Math.ceil(initials.length / 2);
   for (let i = 0; i < initials.length; i++)
-    words_container.appendChild(make_word_row(i, initials[i], word_arr[i]));
+    (i < half ? col1 : col2).appendChild(make_word_row(i, initials[i], word_arr[i]));
 }
 
 // Update words to match current source
