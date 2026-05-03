@@ -5,10 +5,14 @@ const REGISTRY_GIST_ID = '1ffcabe8f9baa5cddb7e2d12d3bf2898';
 let cached_github_key_promise = null;
 async function gist_request (url, method, content) {
   const key = await (cached_github_key_promise ||= decrypt_key(GISTS_GITHUB_KEY));
-  return do_fetch(url, method, { 'Authorization': `token ${key}`,
-                                 'Accept': 'application/vnd.github.v3+json' }, content);
+  try {
+    return do_fetch(url, method, { 'Authorization': `token ${key}`,
+                                   'Accept': 'application/vnd.github.v3+json' }, content);
+  } catch (e) {
+    alert(`Network error: ${e.message}`);
+    throw e; // re-throw so callers get aborted
+  }
 }
-
 
 // Checks localStorage first, then registry.
 // Creates new gist if username is unclaimed.
