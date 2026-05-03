@@ -1,4 +1,3 @@
-// Change persistent_name/changed to file_name file_dirty
 // TODO: show a "welcome <username>" when know username
 // TODO: Export, to put puzzle in file
 // TODO: Allow Edit Clues even if puzzle is not complete, as long as there are some words.
@@ -20,9 +19,9 @@ const quit_btn      = document.getElementById('quit-btn');
 
 const Puzzle = { clue_mode: false,
                  saved_clues: [], // null when in clue mode, array in edit mode
-                 persistent_name: null, // last saved/loaded name
-                 persistent_save: null, // last saved/loaded data
-                 last_autosave: null,
+                 file_name: null, // last saved/loaded name
+                 file_content: null, // last saved/loaded data
+                 last_autosave: null, // last puzzle_data
                  uuid: null,
                };
 
@@ -362,7 +361,7 @@ function receive_clue_suggestions(data) {
 function puzzle_is_empty () { return quote_text() === '' && source_text() === '' }
 
 function puzzle_needs_saving () {
-  return Puzzle.persistent_name ? (Puzzle.persistent_save !== Puzzle.last_autosave) : !puzzle_is_empty();
+  return Puzzle.file_name ? (Puzzle.file_content !== Puzzle.last_autosave) : !puzzle_is_empty();
 }
 
 function ok_to_discard_puzzle () {
@@ -513,17 +512,17 @@ save_btn.addEventListener('click', async () => {
   if (!ensure_logged_in()) return;
   const name = puzzle_name();
   try {
-    if (Puzzle.persistent_name !== name) {
+    if (Puzzle.file_name !== name) {
       const file_content = await load_puzzle(User_Name, name);
       if  (file_content && file_content !== Puzzle.last_autosave
            && !confirm(`Puzzle "${name}" exists, overwrite it?`))
       return;
     }
     show_overlay('Saving…');
-    Puzzle.persistent_save = await store_puzzle(User_Name, name, get_puzzle_data());
+    Puzzle.file_content = await store_puzzle(User_Name, name, get_puzzle_data());
     // TODO: should be able to use last_autosave instead of get_puzzle_data()...
-    if (Puzzle.persistent_save !== Puzzle.last_autosave) bug('expected last_autosave to match data');
-    Puzzle.persistent_name = name;
+    if (Puzzle.file_content !== Puzzle.last_autosave) bug('expected last_autosave to match data');
+    Puzzle.file_name = name;
     console.log('saved');
     hide_overlay();
     state_changed();
@@ -544,8 +543,8 @@ load_btn.addEventListener('click', async () => {
   const data = read_data(file_info.content);
   data.name = file_info.filename; // should already be the same, but maybe someday we'll allow files to be renamed or something....
   start_fresh_puzzle(data.uuid); // this forces edit mode
-  Puzzle.persistent_name = file_info.filename;
-  Puzzle.persistent_save = file_info.content;
+  Puzzle.file_name = file_info.filename;
+  Puzzle.file_content = file_info.content;
   update_puzzle_from_data(data); // this updates based on new persistent info
   if (!Puzzle.last_autosave) bug("I expect last_autosave to be set up");
   if (file_info.content !== Puzzle.last_autosave) {
@@ -561,8 +560,8 @@ function start_fresh_puzzle (uuid) {
   if (Puzzle.clue_mode) toggle_clue_mode(); // take off clue mode classes buttons etc
   Puzzle.last_autosave = undefined;  // gets overwritten almost immediately
   Puzzle.uuid = uuid ?? crypto.randomUUID();
-  Puzzle.persistent_name = null;
-  Puzzle.persistent_save = null;
+  Puzzle.file_name = null;
+  Puzzle.file_content = null;
   puzzle_name_elt.value = 'New Puzzle';
   quotation_elt.textContent = '';
   source_elt.textContent = '';
