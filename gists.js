@@ -49,10 +49,8 @@ async function get_gist_url (username) {
   return register_url_for(gist_id);
 }
 
-async function store_puzzle(user, name, puzzle_data) {
-  const content = JSON.stringify(puzzle_data);
+async function store_puzzle(user, name, content) {
   await gist_request(await get_gist_url(user), 'PATCH', { files: { [name]: { content: content } } });
-  return content;
 }
 
 
