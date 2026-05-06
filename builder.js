@@ -4,10 +4,15 @@
 // TODO: Word input can be half the size it is, and can be in two columns
 
 const puzzle_name_elt = document.getElementById('puzzle-name');
+const quote_count_elt = document.getElementById('quote-count');
 const quotation_elt = document.getElementById('quotation');
+const source_count_elt = document.getElementById('source-count');
 const source_elt    = document.getElementById('source');
+const letters_count_elt = document.getElementById('letters-count');
 const unused_letters_elt   = document.getElementById('letters');
+const avg_length_elt = document.getElementById('avg-length');
 const words_container = document.getElementById('words-container');
+
 
 const clue_btn      = document.getElementById('clue-btn');
 const save_btn      = document.getElementById('save-btn');
@@ -26,10 +31,11 @@ const Puzzle = { clue_mode: false,
 const LABEL_SUFFIX = ':';
 
 
-function puzzle_name () { return puzzle_name_elt.value.trim(); }
+function input_elt_text (input_elt) { return input_elt.innerText.replace(/\u00A0/g, ' '); }
 
-function source_text () { return source_elt.textContent; }
-function quote_text () { return quotation_elt.textContent; }
+function puzzle_name () { return input_elt_text(puzzle_name_elt).trim(); }
+function quote_text () { return input_elt_text(quotation_elt); }
+function source_text () { return input_elt_text(source_elt); }
 
 function all_word_rows () { return [...words_container.querySelectorAll('.word-row')] }
 function word_initial_elt (row) { return row.querySelector('.word-letter') }
@@ -39,16 +45,45 @@ function clue_input_elt (row) { return row.querySelector('.clue-input') }
 
 
 function word_initial_text (row) { return word_initial_elt(row).textContent }
-function word_input_text (row) { return word_input_elt(row).textContent }
+function word_input_text (row) { return input_elt_text(word_input_elt(row)); }
 function full_word_text (row) { return word_initial_text(row) + word_input_text(row) }
 function clue_label_text (row) { return clue_label_elt(row).textContent }
-function clue_input_text (row) { return clue_input_elt(row).textContent }
+function clue_input_text (row) { return input_elt_text(clue_input_elt(row)); }
 function clue_word_text (row) { return clue_label_text(row).slice(0, -LABEL_SUFFIX.length) }
 
 
-puzzle_name_elt.addEventListener('input', name_changed);
+const word_legal_chars  = "'- \u00A0";
+const name_legal_chars = "0123456789-_.()'+&#@ \u00A0";
+
+puzzle_name_elt.addEventListener('input', () => { validate_input(puzzle_name_elt, name_legal_chars); name_changed(); });
 quotation_elt.addEventListener('input', quote_changed);
 source_elt.addEventListener('input', source_changed);
+
+function validate_input (input, special_chars) {
+  function legal_char (ch) { return is_letter(ch) || special_chars.includes(ch) };
+  function count_illegal (str, start, end) {
+    let n = 0;
+    for (let i= start; i < end; i++) if (!legal_char(str[i])) ++n;
+    return n;
+  };
+  const raw = input.innerText;
+  const selection = get_selection();
+  const filtered = [...raw].filter(legal_char).join('');
+  if (filtered !== raw) {
+    beep(); // we're going to ignore something they just typed
+    set_input_text(input, filtered);
+    if (selection?.element === input) {
+      const bef_sel = count_illegal(raw, 0, selection.start);
+      const in_sel = count_illegal(raw, selection.start, selection.end);
+      if (bef_sel || in_sel) {
+        selection.start -= bef_sel;
+        selection.end -= bef_sel+in_sel;
+        set_selection(selection);
+      }
+    }
+  }
+}
+
 
 
 // --------------------------------- word/clue rows -------------------------------------------------------------------
@@ -64,33 +99,6 @@ function row_navigation_handler(e, input_getter) {
     const next = inputs[i + 1];
     if (next) next.focus();
     e.preventDefault();
-  }
-}
-
-function word_input_handler (input) {
-  // Spaces seem to all be non-breaking spaces
-  function legal_char (ch) { return is_letter(ch) || ch === '-' || ch === ' ' || ch == '\u00A0'; };
-  function count_illegal (str, start, end) {
-    let n = 0;
-    for (let i= start; i < end; i++) if (!legal_char(str[i])) ++n;
-    return n;
-  };
-                                   
-  const raw = input.textContent;
-  const selection = get_selection();
-  const filtered = [...raw].filter(legal_char).join('');
-  if (filtered !== raw) {
-    beep(); // we're going to ignore something they just typed
-    set_input_text(input, filtered);
-    if (selection?.element === input) {
-      const bef_sel = count_illegal(raw, 0, selection.start);
-      const in_sel = count_illegal(raw, selection.start, selection.end);
-      if (bef_sel || in_sel) {
-        selection.start -= bef_sel;
-        selection.end -= bef_sel+in_sel;
-        set_selection(selection);
-      }
-    }
   }
 }
 
@@ -110,7 +118,7 @@ function make_word_row (index, ch, html) {
                                           inp.dataset.index = index;
                                           inp.setAttribute('placeholder',`enter a word starting with "${ch}"…`);
                                           inp.innerHTML = html;
-                                          inp.addEventListener('input', () => { word_input_handler(inp); word_changed(); });
+                                          inp.addEventListener('input', () => { validate_input(inp, word_legal_chars); word_changed(); });
                                           inp.addEventListener('keydown', e => { row_navigation_handler(e, word_input_elt) });
                                         });
                        });
@@ -300,9 +308,22 @@ function clue_changed () {
   state_changed();
 }
 
+function update_counts() {
+  const quote_len = letters_of(quote_text()).length;
+  const source_len = letters_of(source_text()).length;
+  const avg = source_len ? (quote_len / source_len).toFixed(1) : '';
+  const letters_len = letters_of(unused_letters_elt.textContent).length;
+
+  quote_count_elt.textContent  = quote_len ? ` (${quote_len} letters)` : '';
+  source_count_elt.textContent = source_len ? ` (${source_len} letters)` : '';
+  letters_count_elt.textContent = letters_len ? ` (${letters_len} letters)` : '';
+  avg_length_elt.textContent = avg ? `Average word length: ${avg}` : '';
+}
+
 
 function state_changed () {
   autosave_puzzle();
+  update_counts();
   clue_btn.disabled = !Puzzle.clue_mode && (all_word_rows().length == 0 || // hasn't started yet.
                                             unused_letters_elt.textContent || // or there are still unused letters
                                             source_elt.querySelector('.illegal') || // or there are illegal chars in source
@@ -401,7 +422,7 @@ function update_puzzle_from_data (data) {
        current_rows.some((row, i) => clue_word_text(row) !== data.clues[i][0])))
     toggle_clue_mode();
 
-  puzzle_name_elt.value = data.name;
+  set_input_text(puzzle_name_elt, data.name);
   set_input_text(quotation_elt, data.quotation);
   set_input_text(source_elt, data.source);
 
@@ -527,7 +548,7 @@ function start_fresh_puzzle (uuid) {
   Puzzle.uuid = uuid ?? crypto.randomUUID();
   Puzzle.last_autosave = undefined;  // should get overwritten almost immediately
   Puzzle.last_filesave = null;
-  puzzle_name_elt.value = 'New Puzzle';
+  puzzle_name_elt.textContent = 'New Puzzle';
   quotation_elt.textContent = '';
   source_elt.textContent = '';
   Puzzle.saved_clues = [];

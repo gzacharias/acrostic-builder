@@ -14,25 +14,31 @@
 
 <div class="panel">
 
-  <label>Name: <input type="text" id="puzzle-name" value="New Puzzle"></label>
+  <div class="subview" style="Flex-direction: row; align-items: baseline">
+    <label>File Name:</label>
+    <div id="puzzle-name" contenteditable="true" class="editable"></div>
+  </div>
 
   <div class="subview">
-    <label>Quotation</label>
+    <label>Quotation<span id="quote-count"></span></label>
     <div id="quotation" contenteditable="true" class="editable" placeholder="Enter quotation…"></div>
   </div>
 
   <div class="subview">
-    <label>Title/Author</label>
+    <label>Title/Author<span id="source-count"></span></label>
     <div id="source" contenteditable="true" class="editable" placeholder="Enter source of quotation…"></div>
   </div>
 
   <div class="subview" id="letters-subview">
-    <label>Available Letters</label>
+    <label>Available Letters<span id="letters-count"></span></label>
     <div id="letters"></div>
   </div>
 
   <div class="subview" style="position: relative">
+  <div style="display:flex; justify-content:space-between; align-items:baseline">
     <label id="words-label"></label>
+    <label id="avg-length"></label>
+  </div>
     <div id="words-container" placeholder="Words entries will appear here once Title/Author is entered"></div>
     <div id="thinking-overlay" style="display:none"></div>
   </div>

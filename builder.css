@@ -86,6 +86,11 @@ label {
     letter-spacing: 0.08em;
 }
 
+#puzzle-name {
+    width: 50ch;
+}
+
+
 #quotation {
     min-height: 2.8em;
     white-space: pre-wrap;

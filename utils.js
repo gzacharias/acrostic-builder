@@ -255,7 +255,7 @@ function set_input_markup (elt, html) {
 
 function set_input_text (elt, str) {
   // Don't clobber selection if don't have to..
-  if (elt.textContent !== str) elt.textContent = str;
+  if (elt.innerText !== str) elt.innerText = str;
 }
 
 const progress_overlay_elt = document.getElementById('thinking-overlay');
