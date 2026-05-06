@@ -273,12 +273,17 @@ function update_error_markup () {
                               ch => { const html = char_html(ch);
                                       if (is_letter(ch)) source_states.push(html.length > 1);
                                       return html }));
-  for (const word of all_word_rows()) {
-    word_initial_elt(word).classList.toggle('illegal', source_states.shift());
-    set_input_markup(word_input_elt(word), map_to_str(word_input_text(word), char_html));
+  function update (row) {
+    word_initial_elt(row).classList.toggle('illegal', source_states.shift());
+    set_input_markup(word_input_elt(row), map_to_str(word_input_text(row), char_html));
   }
 
+  // Update active row last so it gets red first.
+  const active_row = document.activeElement?.closest('.word-row');
+  for (const row of all_word_rows()) if (row !== active_row) update(row);
+  if (active_row) update(active_row);
 }
+
 // ----------------------------------------------------------------------------------------------------
 
 function name_changed () {
