@@ -224,7 +224,7 @@ function toggle_clue_mode () {
   }
   Puzzle.clue_mode = !Puzzle.clue_mode;
   document.body.classList.toggle('clue-mode', Puzzle.clue_mode);
-  clue_btn.textContent = (Puzzle.clue_mode ? 'Edit Puzzle' : 'Add Clues');
+  state_changed();
 }
 
 clue_btn.addEventListener('click', toggle_clue_mode);
@@ -324,6 +324,7 @@ function update_counts() {
 function state_changed () {
   autosave_puzzle();
   update_counts();
+  clue_btn.textContent = (Puzzle.clue_mode ? 'Edit Puzzle' : 'Edit Clues');
   clue_btn.disabled = !Puzzle.clue_mode && (all_word_rows().length == 0 || // hasn't started yet.
                                             unused_letters_elt.textContent || // or there are still unused letters
                                             source_elt.querySelector('.illegal') || // or there are illegal chars in source
