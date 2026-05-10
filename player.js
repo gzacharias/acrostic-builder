@@ -1,3 +1,5 @@
+// TODO: add autossave so reload doesn't clear everything
+// TODO: add '(n words)' at end of clue as needed.
 // TODO: in builder, provide support for a source label, would be like "Author only", and add it here.
 // TODO: tooltips.
 // TODO: make up/down arrow work in the grid
@@ -5,7 +7,7 @@
 // TODO: should resize as window changes.
 
 
-let Show_Illegal = false; // user option
+let Show_Illegal = false; // user option, currently ignored.
 
 const COLS = 20;
 
@@ -130,14 +132,27 @@ function word_index_label (word_index) {
 function letter_index_label (letter_index) { return letter_index+1 }
 
 function check_puzzle_complete (puzzle) {
-  let source_letters = letters_of(puzzle.source);
-  if (puzzle.words.length != puzzle.clues.length ||
-      puzzle.words.length != source_letters.length)
+  const source_letters = letters_of(puzzle.source);
+  const words = puzzle.words;
+  if (words.length != puzzle.clues.length || words.length != source_letters.length)
     return false;
-  if (puzzle.words.some((word_input, index) => 
-                        (source_letters[index] + word_input) !== puzzle.clues[index][0]))
+  if (words.some((word_input, index) => { const clue = puzzle.clues[index];
+                                          return !clue[1] || (source_letters[index] + word_input) !== clue[0]; }))
     return false;
-  return true;
+
+  const all_letters = letters_of(puzzle.quotation);
+  let len = all_letters.length;
+  const counts = {};
+  for (const ch of all_letters) counts[ch] = (counts[ch] ?? 0) + 1;
+  if ((len -= source_letters.length) < 0) return false;
+
+  for (const ch of source_letters) if (counts[ch] > 0) counts[ch]--; else return false;
+  for (const word of words) {
+    const word_letters = letters_of(word);
+    if ((len -= word_letters.length) < 0) return false;
+    for (const ch of word_letters) if (counts[ch] > 0) counts[ch]--; else return false;
+  }
+  return len === 0;
 }
 
 function init_puzzle_data (puzzle) {
@@ -287,8 +302,9 @@ function render_puzzle (puzzle_data) {
 
 
 (async () => { 
-  const file_info  = await select_puzzle_dialog(get_user_name());
-  const data = read_data(file_info.content);
+  const file  = await select_puzzle_dialog(get_user_name(),
+                                           file => check_puzzle_complete(read_data(file.content)) );
+  const data = file ? read_data(file.content) : test_puzzle;
   const info = init_puzzle_data(data);
   render_puzzle(info);
 })();
