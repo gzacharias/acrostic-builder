@@ -1,3 +1,4 @@
+// TODO: go to end of word when moving to new word...
 // TODO: Export, to put puzzle in file
 // TODO: Allow Edit Clues even if puzzle is not complete, as long as there are some words.
 // TODO: Removme save/load handlers in XCode
@@ -318,10 +319,12 @@ function update_counts() {
   const source_len = letters_of(source_text()).length;
   const avg = source_len ? (quote_len / source_len).toFixed(1) : '';
   const letters_len = letters_of(unused_letters_elt.textContent).length;
+  const word_count = (all_word_rows().filter(row => word_input_text(row) === '').length);
+  const rem_avg = word_count ? (letters_len / word_count).toFixed(1) : '';
 
   quote_count_elt.textContent  = quote_len ? ` (${quote_len} letters)` : '';
   source_count_elt.textContent = source_len ? ` (${source_len} letters)` : '';
-  letters_count_elt.textContent = letters_len ? ` (${letters_len} letters)` : '';
+  letters_count_elt.textContent = letters_len ? ` (${letters_len} letters` + (word_count ? `, ${rem_avg} per word` : '') + ')' : '';
   avg_length_elt.textContent = avg ? `Average word length: ${avg}` : '';
 }
 
@@ -586,7 +589,7 @@ start_fresh_puzzle();
 
 { const uuid = find_newest_autosave();
   if (uuid) {
-    console.log('FOund autosave', uuid);
+    console.log('Found autosave', uuid);
     Puzzle.uuid = uuid;
     update_from_autosave();
   }

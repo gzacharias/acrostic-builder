@@ -60,7 +60,7 @@ async function load_puzzle (user, name) {
   return gist.files[name]?.content;
 }
 
-async function select_puzzle_dialog (user) {
+async function select_puzzle_dialog (user, test) {
   const gist = await gist_request(await get_gist_url(user), 'GET');
   // TODO: change to puzzle files having a prefix or suffix, rather than enumerating
   // all files that are NOT puzzles.
@@ -73,17 +73,18 @@ async function select_puzzle_dialog (user) {
       add_div(d, 'dialog-title', t => t.textContent = 'Select puzzle to load');
       const list = add_div(d, 'puzzle-list');
       for (const file of puzzle_files) {
-        add_div(list, 'puzzle-item', item => {
-          item.textContent = file.filename;
-          item.addEventListener('click', () => {
-            document.body.removeChild(overlay);
-            resolve(file);
+        if (!test || test(file))
+          add_div(list, 'puzzle-item', item => {
+            item.textContent = file.filename;
+            item.addEventListener('click', () => {
+              document.body.removeChild(overlay);
+              resolve(file);
+            });
+            item.addEventListener('contextmenu', e => {
+                e.preventDefault();
+                // future: show_puzzle_preview(item, content);
+            });
           });
-          item.addEventListener('contextmenu', e => {
-            e.preventDefault();
-            // future: show_puzzle_preview(item, content);
-          });
-        });
       }
       add_elt(d, 'button', btn => {
         btn.textContent = 'Cancel';
