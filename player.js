@@ -88,7 +88,7 @@ function handle_selection_change (grid_input) {
 // Taken from puzzlebaron, only for testing.
 const test_puzzle = {
   "format": 4,
-  "quote": "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
+  "quotation": "And indeed it could be said that once the faintest stirring of hope became possible, the dominion of plague was ended.",
   "uuid": "lasjkd;asjfd",
   "name": "test puzzle",
   "source": "Albert Camus",
