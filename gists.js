@@ -27,11 +27,13 @@ async function get_gist_url (username) {
     return url;
   }
 
+  gist_username = username.toLowerCase();
+
   // Not a normal situation. ***** TODO: Reexamine this once settle on how we first get the username
-  if (registry[username]) {
+  if (registry[gist_username]) {
     // username exists but no gist_url in local storage.  Could have cleared localStorage, or using
     // a different browser, or something funky happened when getting the user name.
-    return register_url_for(registry[username]);
+    return register_url_for(registry[gist_username]);
   }
 
   // New user — create their gist and register them
@@ -42,7 +44,7 @@ async function get_gist_url (username) {
                                   });
   const gist_id = data.id;
   // Update registry
-  registry[username] = gist_id;
+  registry[gist_username] = gist_id;
   await gist_request(`https://api.github.com/gists/${REGISTRY_GIST_ID}`, 'PATCH', 
                      { files: { 'registry.json': { content: JSON.stringify(registry) } } });
 
